@@ -1,0 +1,101 @@
+{% extends 'myapp/base.html' %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 py-10 px-4">
+    <div class="max-w-5xl mx-auto">
+        
+        <!-- Profile Header & Stats -->
+        <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm mb-8 flex flex-col md:flex-row items-center gap-6">
+            <div class="w-20 h-20 bg-emerald-600 rounded-2xl flex items-center justify-center text-white text-3xl font-black shadow-lg shadow-emerald-100">
+                {{ user.username|slice:":1"|upper }}
+            </div>
+            <div class="text-center md:text-left flex-1">
+                <h1 class="text-3xl font-black text-slate-900 tracking-tight">{{ user.username|title }}</h1>
+                <p class="text-slate-500 font-medium tracking-tight">Member since {{ user.date_joined|date:"F Y" }}</p>
+                <span class="inline-block mt-2 px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-full uppercase tracking-widest border border-slate-200">
+                    {{ user.role|default:"User" }}
+                </span>
+            </div>
+            
+            <!-- Quick Impact Stats -->
+            <div class="flex gap-4">
+                <div class="text-center px-6 py-3 bg-emerald-50 rounded-2xl border border-emerald-100">
+                    <span class="block text-2xl font-black text-emerald-700">{{ donations.count }}</span>
+                    <span class="text-[10px] uppercase font-bold text-emerald-600 tracking-tighter">Donations</span>
+                </div>
+                <div class="text-center px-6 py-3 bg-slate-50 rounded-2xl border border-slate-200">
+                    <span class="block text-2xl font-black text-slate-700">{{ orders.count }}</span>
+                    <span class="text-[10px] uppercase font-bold text-slate-400 tracking-tighter">Orders</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- Section: My Orders (Medicines to Collect) -->
+            <div class="space-y-6">
+                <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2 px-2">
+                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 11-8 0m-4 5v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm5 7h.01M5 9h.01M15 5h.01M21 12h.01M7 13h.01M14 14h.01M12 17h.01M9 8h.01" /></svg>
+                    Medicine to Collect
+                </h2>
+                
+                <div class="space-y-4">
+                    {% for order in orders %}
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:border-emerald-300 transition-all group">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="font-bold text-slate-900 text-lg">{{ order.name }}</h3>
+                            <span class="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-1 rounded uppercase tracking-wider">Reserved</span>
+                        </div>
+                        <div class="space-y-1 mb-4">
+                            <p class="text-sm text-slate-500">Pickup Location: <span class="text-slate-800 font-semibold italic text-xs">ReMedi Corner Partner</span></p>
+                            <p class="text-xs text-slate-400">Date: {{ order.ordered_at|date:"M d, Y" }}</p>
+                        </div>
+                        <div class="flex items-center justify-between border-t border-slate-50 pt-4">
+                            <span class="text-lg font-black text-emerald-600">{{ order.resale_price }} BDT</span>
+                            <a href="{% url 'corner_map' %}" class="text-xs font-bold text-slate-900 hover:text-emerald-600 flex items-center gap-1 transition-colors">
+                                View Map <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-width="3"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-12 text-center">
+                        <p class="text-slate-400 text-sm font-medium italic">No active orders found.</p>
+                        <a href="{% url 'marketplace' %}" class="text-emerald-600 text-xs font-bold mt-2 inline-block hover:underline">Browse Marketplace</a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Section: My Donations -->
+            <div class="space-y-6">
+                <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2 px-2">
+                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                    Donation Impact
+                </h2>
+
+                <div class="space-y-4">
+                    {% for donation in donations %}
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm">
+                        <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+                            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-slate-800 text-sm">{{ donation.name }}</h4>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                                Status: <span class="{% if donation.status == 'verified' %}text-emerald-600{% else %}text-amber-500{% endif %}">{{ donation.status|title }}</span>
+                            </p>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-12 text-center">
+                        <p class="text-slate-400 text-sm font-medium italic">Your donation history is empty.</p>
+                        <a href="{% url 'donate_medicine' %}" class="text-emerald-600 text-xs font-bold mt-2 inline-block hover:underline">Make a Donation</a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

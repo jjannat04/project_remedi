@@ -1,0 +1,58 @@
+{% extends 'myapp/base.html' %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 py-10 px-4">
+    <div class="max-w-6xl mx-auto">
+        
+        <div class="mb-8">
+            <h1 class="text-3xl font-black text-slate-900 tracking-tight">Verification Hub</h1>
+            <p class="text-slate-500">Reviewing {{ pending_count }} pending donations.</p>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-100 text-xs font-bold uppercase text-slate-400">
+                            <th class="px-6 py-4">Medicine Details</th>
+                            <th class="px-6 py-4">Donor</th>
+                            <th class="px-6 py-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for med in pending_medicines %}
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="px-6 py-5">
+                                <p class="font-bold text-slate-800">{{ med.name }}</p>
+                                <p class="text-xs text-slate-400 font-mono">Expires: {{ med.expiry_date }}</p>
+                            </td>
+                            <td class="px-6 py-5 text-sm text-slate-600">
+                                {{ med.donor.username }}
+                            </td>
+                            <td class="px-6 py-5">
+                                <!-- ONE FORM, TWO BUTTONS -->
+                                <form action="{% url 'verify_medicine' med.id %}" method="POST" class="flex justify-end gap-2">
+                                    {% csrf_token %}
+                                    <button type="submit" name="action" value="reject" class="px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl">
+                                        Reject
+                                    </button>
+                                    <button type="submit" name="action" value="verify" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-100">
+                                        Verify & List
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="px-6 py-20 text-center text-slate-400 font-medium">
+                                All caught up! No pending donations.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

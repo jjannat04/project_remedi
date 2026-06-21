@@ -1,0 +1,47 @@
+{% extends 'myapp/base.html' %}
+
+{% block content %}
+<div class="bg-emerald-700 text-white py-12 px-4 rounded-3xl mb-12 shadow-lg">
+    <div class="max-w-4xl mx-auto text-center">
+        <h1 class="text-4xl font-extrabold mb-4">Circular Healthcare for All</h1>
+        <p class="text-emerald-100 mb-8">Redistributing unexpired medicine to those who need it most.</p>
+        <div class="inline-flex flex-col items-center">
+            <span class="text-5xl font-black mb-1">{{ total_saved }} BDT</span>
+            <span class="text-sm uppercase tracking-widest text-emerald-200">Total Community Savings</span>
+        </div>
+    </div>
+</div>
+    <div class="max-w-7xl mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for med in medicines %}
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-xl font-bold text-slate-800">{{ med.name }}</h3>
+                    <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full uppercase">
+                        Verified
+                    </span>
+                </div>
+                
+                <div class="space-y-2 mb-6 text-sm text-slate-600">
+                    <p class="flex justify-between">
+                        <span>Original Price:</span>
+                        <span class="line-through text-slate-400">{{ med.original_price }} BDT</span>
+                    </p>
+                    <p class="flex justify-between font-bold text-lg text-emerald-600">
+                        <span>ReMedi Price:</span>
+                        <span>{{ med.resale_price }} BDT</span>
+                    </p>
+                    <p class="text-xs">Expires: {{ med.expiry_date }}</p>
+                </div>
+
+                <a href="{% url 'order_medicine' med.id %}" 
+                   class="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-colors">
+                    Order Now
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

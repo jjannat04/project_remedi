@@ -1,0 +1,40 @@
+{% extends 'myapp/base.html' %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-64px)] flex items-center justify-center bg-slate-50 py-12 px-4">
+    <div class="max-w-xl w-full bg-white p-10 rounded-3xl shadow-xl border border-slate-200 text-center">
+        
+        <!-- Animated Clock/Status Icon -->
+        <div class="mx-auto h-20 w-20 bg-amber-50 rounded-full flex items-center justify-center mb-6 relative">
+            <svg class="h-10 w-10 text-amber-600 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0" />
+            </svg>
+            <div class="absolute -top-1 -right-1 h-6 w-6 bg-amber-500 border-4 border-white rounded-full"></div>
+        </div>
+
+        <h2 class="text-3xl font-black text-slate-900 tracking-tight mb-4">Registration Received!</h2>
+        
+        <div class="space-y-4 mb-8">
+            <p class="text-slate-600 leading-relaxed">
+                Since you registered as a <span class="font-bold text-slate-900 uppercase text-xs px-2 py-1 bg-slate-100 rounded">Pharmacist</span>, our regulatory team needs to verify your professional credentials.
+            </p>
+            
+            <div class="bg-emerald-50 rounded-2xl p-4 border border-emerald-100 inline-block">
+                <p class="text-emerald-800 text-sm font-semibold flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"></path></svg>
+                    Expected activation: 24-48 hours
+                </p>
+            </div>
+        </div>
+
+        <div class="border-t border-slate-100 pt-8 flex flex-col gap-3">
+            <a href="{% url 'marketplace' %}" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-black transition-all shadow-xl">
+                Browse Marketplace as Guest
+            </a>
+            <p class="text-xs text-slate-400">
+                Need help? Contact <span class="font-medium">support@remedi.org</span>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

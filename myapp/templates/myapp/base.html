@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>ReMedi | Circular Healthcare</title>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans">
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16 items-center">
+            
+            <!-- Logo Section -->
+            <div class="flex items-center gap-2">
+                <div class="bg-emerald-600 p-1.5 rounded-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                    </svg>
+                </div>
+                <a href="{% url 'marketplace' %}" class="text-2xl font-black text-emerald-700 tracking-tight">ReMedi</a>
+            </div>
+
+            <!-- Links Section -->
+            <div class="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-600">
+                <a href="{% url 'marketplace' %}" class="hover:text-emerald-600 transition-colors">Marketplace</a>
+                <a href="{% url 'corner_map' %}" class="hover:text-emerald-600 transition-colors">Find Corners</a>
+                
+                
+                {% if user.is_authenticated %}
+                   
+                        <!-- Pharmacist Specific Link -->
+                        <a href="{% url 'pharmacist_queue' %}" class="bg-amber-50 text-amber-700 px-3 py-1 rounded-md border border-amber-200">Verification Hub</a>
+                    
+                        <!-- Regular User Link -->
+                        <a href="{% url 'donate_medicine' %}" class="text-emerald-600 font-bold hover:underline">Donate Medicines</a>
+                    
+                {% endif %}
+            </div>
+
+            <!-- User Auth Section -->
+            <div class="flex items-center gap-4">
+                {% if user.is_authenticated %}
+                    <div class="flex items-center gap-3">
+                        <a href="{% url 'profile' %}" class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-full transition-all">
+                            <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                {{ user.username|slice:":1"|upper }}
+                            </div>
+                            <span class="text-sm font-semibold text-slate-700 hidden sm:inline">{{ user.username }}</span>
+                        </a>
+                        <form action="{% url 'logout' %}" method="post" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="text-xs text-slate-400 hover:text-red-500 font-medium">Logout</button>
+                        </form>
+                    </div>
+                {% else %}
+                    <a href="{% url 'login' %}" class="text-sm font-semibold text-slate-600 hover:text-emerald-600">Login</a>
+                    <a href="{% url 'signup' %}" class="bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-emerald-700 transition-all">Sign Up</a>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+</nav>
+    
+    {% block content %}
+    {% endblock %}
+</body>
+</html>
