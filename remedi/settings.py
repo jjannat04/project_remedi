@@ -23,9 +23,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-j4-%+sk5g67)1&^1#c)p_j^m1p5!x+nxl2lz!v8y=^@4bp!#1&'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -48,6 +48,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
 ROOT_URLCONF = 'remedi.urls'
@@ -128,8 +129,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+
 AUTH_USER_MODEL = 'myapp.User'
 LOGIN_REDIRECT_URL = 'marketplace'
 LOGIN_URL = 'login'
 LOGOUT_REDIRECT_URL = 'marketplace'
+STATIC_ROOT = BASE_DIR / "staticfiles" 
+STATIC_URL = "/static/"
