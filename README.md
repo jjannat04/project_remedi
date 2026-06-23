@@ -1,7 +1,5 @@
 # ReMedi - Circular Healthcare Platform 
 
-**1st Runner-Up @ Hult Prize CUET 2025–26**
-
 ReMedi is a Django-based web application designed to bridge the gap between pharmaceutical waste and healthcare affordability in Bangladesh. We facilitate the donation of unexpired surplus medicine, verify it through a professional audit, and resell it at a 70% discount.
 
 ##  Key Features
