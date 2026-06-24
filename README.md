@@ -2,6 +2,8 @@
 
 ReMedi is a Django-based web application designed to bridge the gap between pharmaceutical waste and healthcare affordability in Bangladesh. We facilitate the donation of unexpired surplus medicine, verify it through a professional audit, and resell it at a 70% discount.
 
+## Live Link - https://project-remedi.onrender.com
+
 ##  Key Features
 - **Triple-Check Audit:** A pharmacist-led verification protocol ensuring physical integrity, authenticity, and expiry validation.
 - **Automated Pricing:** Business logic that automatically applies a 70% discount to all verified listings.
