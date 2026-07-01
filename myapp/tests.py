@@ -1,5 +1,6 @@
 from django.core.management import call_command
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.files.storage import FileSystemStorage, storages
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -17,6 +18,23 @@ from .services.demo_data import (
     DEMO_PATIENT_EMAIL,
     DEMO_PHARMACIST_EMAIL,
 )
+
+
+STATICFILES_TEST_STORAGE = {
+    "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+}
+LOCAL_MEDIA_TEST_STORAGE = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": STATICFILES_TEST_STORAGE,
+}
+CLOUDINARY_MEDIA_TEST_STORAGE = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+    "staticfiles": STATICFILES_TEST_STORAGE,
+}
 
 
 def create_test_image(name="package.png", size=(2200, 1400), color=(20, 120, 90)):
@@ -246,3 +264,78 @@ class HackathonMediaServeTests(TestCase):
         response = self.client.get("/media/%2e%2e/db.sqlite3")
 
         self.assertEqual(response.status_code, 404)
+
+
+class CloudinaryStorageConfigTests(TestCase):
+    def setUp(self):
+        self.media_root = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.media_root, ignore_errors=True)
+
+    @override_settings(USE_CLOUDINARY_STORAGE=False, STORAGES=LOCAL_MEDIA_TEST_STORAGE)
+    def test_local_fallback_storage_backend_is_used_when_cloudinary_disabled(self):
+        self.assertIsInstance(storages["default"], FileSystemStorage)
+
+    @override_settings(
+        USE_CLOUDINARY_STORAGE=True,
+        CLOUDINARY_STORAGE={
+            "CLOUD_NAME": "remedi-demo",
+            "API_KEY": "demo-key",
+            "API_SECRET": "demo-secret",
+        },
+        STORAGES=CLOUDINARY_MEDIA_TEST_STORAGE,
+    )
+    def test_cloudinary_storage_backend_is_used_when_enabled(self):
+        from cloudinary_storage.storage import MediaCloudinaryStorage
+
+        self.assertIsInstance(storages["default"], MediaCloudinaryStorage)
+
+    @override_settings(MEDIA_ROOT="", STORAGES=LOCAL_MEDIA_TEST_STORAGE)
+    def test_local_medicine_image_url_uses_media_url(self):
+        with override_settings(MEDIA_ROOT=self.media_root):
+            medicine = Medicine(medicine_image="medicines/2026/07/local.jpg")
+
+            self.assertEqual(medicine.medicine_image.url, "/media/medicines/2026/07/local.jpg")
+
+    @override_settings(
+        USE_CLOUDINARY_STORAGE=True,
+        CLOUDINARY_STORAGE={
+            "CLOUD_NAME": "remedi-demo",
+            "API_KEY": "demo-key",
+            "API_SECRET": "demo-secret",
+        },
+        STORAGES=CLOUDINARY_MEDIA_TEST_STORAGE,
+    )
+    def test_cloudinary_medicine_image_url_uses_hosted_url(self):
+        medicine = Medicine(medicine_image="medicines/2026/07/cloud.jpg")
+
+        self.assertIn("res.cloudinary.com/remedi-demo", medicine.medicine_image.url)
+        self.assertIn("medicines/2026/07/cloud.jpg", medicine.medicine_image.url)
+
+    @override_settings(STORAGES=LOCAL_MEDIA_TEST_STORAGE)
+    def test_existing_upload_flow_continues_with_local_storage(self):
+        with override_settings(MEDIA_ROOT=self.media_root):
+            donor = User.objects.create_user(
+                username="cloudinary_flow_donor",
+                password="pass12345",
+                role=User.Role.DONOR,
+            )
+            self.client.force_login(donor)
+
+            response = self.client.post(
+                reverse("donate_medicine"),
+                {
+                    "name": "Cloudinary Switch Test",
+                    "batch_number": "CLOUDINARY-FLOW-001",
+                    "expiry_date": "2028-05-20",
+                    "original_price": "500.00",
+                    "medicine_image": create_test_image("cloudinary-flow.png"),
+                },
+            )
+
+            self.assertRedirects(response, reverse("marketplace"), fetch_redirect_response=False)
+            medicine = Medicine.objects.get(batch_number="CLOUDINARY-FLOW-001")
+            self.assertTrue(medicine.medicine_image)
+            self.assertTrue(medicine.medicine_image.name.endswith(".jpg"))
+            self.assertTrue(Path(medicine.medicine_image.path).is_file())
