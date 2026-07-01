@@ -11,7 +11,7 @@ Run `python manage.py seed_demo` to create or refresh:
 - Demo Donor: `demo_donor@remedi.local`
 - Demo Central Pharmacist: `demo_pharmacist@remedi.local`
 
-Both users are marked with `is_demo_account=True`, use the existing role field, and are active. The command is idempotent, so it is safe to run repeatedly.
+Both judge-entry users are marked with `is_demo_account=True`, use the existing role field, and are active. The command also creates a demo patient for reserved and sold medicine records. The command is idempotent, so it is safe to run repeatedly.
 
 ## Login Flow
 
@@ -26,7 +26,7 @@ The buttons call Django `login()` so the result is a real authenticated Django s
 
 The `/judge/` page and demo login actions are only available when `DEMO_MODE=True`. When `DEMO_MODE=False`, these routes return 404 and no demo login is possible.
 
-The bypass does not create medicines, analytics data, marketplace data, QR codes, OTP flows, AI output, background jobs, APIs, or any non-demo user accounts.
+The bypass itself does not create marketplace data, QR codes, OTP flows, AI output, background jobs, APIs, or any non-demo user accounts. Seeded medicines and analytics are created only by the explicit `seed_demo` command.
 
 ## Why Demo Mode Only
 

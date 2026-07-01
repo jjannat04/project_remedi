@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.http import Http404, HttpResponseForbidden
 
+from .services.analytics import calculate_demo_analytics, calculate_medicine_analytics, demo_medicine_queryset
 from .services.demo_data import ensure_demo_user
 
 
@@ -63,6 +64,7 @@ def signup(request):
 def marketplace(request):
     # Simplified Filter: Show everything that is verified and not yet sold
     medicines = Medicine.objects.filter(status='verified').filter(patient=None)
+    reserved_medicines = Medicine.objects.filter(status='verified', patient__isnull=False, completed_at__isnull=True)
 
     # Calculate Total Savings
     # We use .aggregate for better performance (Competitive Programmer style!)
@@ -75,10 +77,14 @@ def marketplace(request):
     # Handle case where no meds are sold yet to avoid None errors
     total_saved = (savings_data['total_orig'] or 0) - (savings_data['total_resale'] or 0)
 
-    return render(request, 'myapp/marketplace.html', {
+    context = {
         'medicines': medicines,
-        'total_saved': total_saved
-    })
+        'reserved_medicines': reserved_medicines,
+        'total_saved': total_saved,
+    }
+    if settings.DEMO_MODE:
+        context['demo_analytics'] = calculate_demo_analytics()
+    return render(request, 'myapp/marketplace.html', context)
 
 
 @login_required
@@ -94,11 +100,18 @@ def pharmacist_queue(request):
         
     pending_medicines = Medicine.objects.filter(status='pending') # or whatever your default status is
     pending_count = pending_medicines.count()
+    verified_count = Medicine.objects.filter(status__in=['verified', 'sold']).count()
+    rejected_count = Medicine.objects.filter(status='rejected').count()
     
-    return render(request, 'myapp/verify_form.html', {
+    context = {
         'pending_medicines': pending_medicines,
         'pending_count': pending_count
-    })
+    }
+    context['verified_count'] = verified_count
+    context['rejected_count'] = rejected_count
+    if settings.DEMO_MODE:
+        context['demo_analytics'] = calculate_demo_analytics()
+    return render(request, 'myapp/verify_form.html', context)
 
 @login_required
 def verify_medicine(request, med_id):
@@ -115,8 +128,16 @@ def verify_medicine(request, med_id):
         
         if action == 'verify':
             medicine.status = 'verified'
+            medicine.is_physical_intact = True
+            medicine.is_authentic = True
+            medicine.is_expiry_valid = True
+            medicine.verified_at = timezone.now()
+            medicine.rejection_reason = ''
+            medicine.rejected_at = None
         elif action == 'reject':
             medicine.status = 'rejected'
+            medicine.rejected_at = timezone.now()
+            medicine.rejection_reason = request.POST.get('rejection_reason') or 'Rejected during pharmacist review.'
         
         medicine.save()
     
@@ -150,11 +171,25 @@ def profile_view(request):
     # Meds the user ordered/purchased
     # We filter by patient=request.user
     my_orders = Medicine.objects.filter(patient=request.user).order_by('-ordered_at')
+    donation_groups = {
+        'pending': my_donations.filter(status='pending'),
+        'rejected': my_donations.filter(status='rejected'),
+        'verified': my_donations.filter(status='verified', patient__isnull=True),
+        'reserved': my_donations.filter(status='verified', patient__isnull=False, completed_at__isnull=True),
+        'sold': my_donations.filter(status='sold'),
+    }
+    profile_analytics = calculate_medicine_analytics(my_donations)
     
-    return render(request, 'myapp/profile.html', {
+    context = {
         'donations': my_donations,
-        'orders': my_orders
-    })
+        'orders': my_orders,
+        'donation_groups': donation_groups,
+        'profile_analytics': profile_analytics,
+    }
+    if settings.DEMO_MODE:
+        context['demo_analytics'] = calculate_demo_analytics()
+        context['demo_medicines_count'] = demo_medicine_queryset().count()
+    return render(request, 'myapp/profile.html', context)
 
 @login_required
 def order_medicine(request, med_id):
@@ -164,6 +199,7 @@ def order_medicine(request, med_id):
         medicine.patient = request.user
         medicine.status = 'sold'  # Force the status change here
         medicine.ordered_at = timezone.now()
+        medicine.completed_at = medicine.ordered_at
         medicine.save()
         return redirect('profile')
     

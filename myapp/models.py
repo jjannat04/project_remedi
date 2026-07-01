@@ -28,10 +28,16 @@ class Medicine(models.Model):
     # Change User to 'myapp.User' to point to your custom model
     donor = models.ForeignKey('myapp.User', on_delete=models.CASCADE, related_name='donations')
     name = models.CharField(max_length=255)
+    scientific_name = models.CharField(max_length=255, blank=True)
+    category = models.CharField(max_length=100, blank=True)
     batch_number = models.CharField(max_length=100)
     expiry_date = models.DateField()
     original_price = models.DecimalField(max_digits=10, decimal_places=2)
     resale_price = models.DecimalField(max_digits=10, decimal_places=2, editable=False)
+    rejection_reason = models.TextField(blank=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    rejected_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
     
     is_physical_intact = models.BooleanField(default=False)
     is_authentic = models.BooleanField(default=False)
@@ -44,7 +50,7 @@ class Medicine(models.Model):
 
     def save(self, *args, **kwargs):
         self.resale_price = self.original_price * Decimal("0.30")
-        if self.is_physical_intact and self.is_authentic and self.is_expiry_valid:
+        if self.status == 'pending' and self.is_physical_intact and self.is_authentic and self.is_expiry_valid:
             self.status = 'verified'
         super().save(*args, **kwargs)
 

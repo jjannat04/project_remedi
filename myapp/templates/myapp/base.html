@@ -31,6 +31,9 @@
                         Demo Mode
                     </a>
                 {% endif %}
+                {% if DEMO_MODE and DEMO_SEEDED %}
+                    <span class="bg-sky-100 text-sky-800 px-2.5 py-1 rounded-full border border-sky-200 text-xs font-bold uppercase tracking-wide">Seeded Demo Data</span>
+                {% endif %}
                 {% if user.is_authenticated and user.is_demo_account %}
                     <span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full border border-emerald-200 text-xs font-bold uppercase tracking-wide">Demo Account</span>
                 {% endif %}
@@ -54,6 +57,9 @@
                     class="md:hidden bg-amber-100 text-amber-800 px-2 py-1 rounded-full border border-amber-200 text-[10px] font-bold uppercase tracking-wide hover:bg-amber-200 transition-colors">
                         Demo Mode
                     </a>
+                {% endif %}
+                {% if DEMO_MODE and DEMO_SEEDED %}
+                    <span class="md:hidden bg-sky-100 text-sky-800 px-2 py-1 rounded-full border border-sky-200 text-[10px] font-bold uppercase tracking-wide">Seeded</span>
                 {% endif %}
                 {% if user.is_authenticated and user.is_demo_account %}
                     <span class="md:hidden bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full border border-emerald-200 text-[10px] font-bold uppercase tracking-wide">Demo Account</span>

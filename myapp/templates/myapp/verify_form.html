@@ -9,6 +9,32 @@
             <p class="text-slate-500">Reviewing {{ pending_count }} pending donations.</p>
         </div>
 
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white border border-slate-200 rounded-2xl p-5">
+                <span class="block text-2xl font-black text-amber-700">{{ pending_count }}</span>
+                <span class="text-xs font-bold uppercase text-slate-400">Pending</span>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-2xl p-5">
+                <span class="block text-2xl font-black text-emerald-700">{{ verified_count }}</span>
+                <span class="text-xs font-bold uppercase text-slate-400">Verified</span>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-2xl p-5">
+                <span class="block text-2xl font-black text-red-700">{{ rejected_count }}</span>
+                <span class="text-xs font-bold uppercase text-slate-400">Rejected</span>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-2xl p-5">
+                <span class="block text-2xl font-black text-sky-700">{{ demo_analytics.estimated_savings|default:0 }}</span>
+                <span class="text-xs font-bold uppercase text-slate-400">Demo Savings</span>
+            </div>
+        </div>
+
+        {% if DEMO_MODE and not DEMO_SEEDED %}
+        <div class="bg-white border-2 border-dashed border-amber-200 rounded-2xl p-8 text-center mb-8">
+            <p class="text-slate-600 font-semibold">Seeded demo verification data is not loaded yet.</p>
+            <p class="text-sm text-slate-400 mt-1">Run <span class="font-mono">python manage.py seed_demo</span> to populate the queue.</p>
+        </div>
+        {% endif %}
+
         <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
@@ -24,6 +50,9 @@
                         <tr class="hover:bg-slate-50/50 transition-colors">
                             <td class="px-6 py-5">
                                 <p class="font-bold text-slate-800">{{ med.name }}</p>
+                                {% if med.scientific_name %}
+                                <p class="text-xs text-slate-500">{{ med.scientific_name }}{% if med.category %} · {{ med.category }}{% endif %}</p>
+                                {% endif %}
                                 <p class="text-xs text-slate-400 font-mono">Expires: {{ med.expiry_date }}</p>
                             </td>
                             <td class="px-6 py-5 text-sm text-slate-600">

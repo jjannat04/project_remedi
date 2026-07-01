@@ -20,13 +20,43 @@
             <!-- Quick Impact Stats -->
             <div class="flex gap-4">
                 <div class="text-center px-6 py-3 bg-emerald-50 rounded-2xl border border-emerald-100">
-                    <span class="block text-2xl font-black text-emerald-700">{{ donations.count }}</span>
+                    <span class="block text-2xl font-black text-emerald-700">{{ profile_analytics.medicines_donated }}</span>
                     <span class="text-[10px] uppercase font-bold text-emerald-600 tracking-tighter">Donations</span>
                 </div>
                 <div class="text-center px-6 py-3 bg-slate-50 rounded-2xl border border-slate-200">
                     <span class="block text-2xl font-black text-slate-700">{{ orders.count }}</span>
                     <span class="text-[10px] uppercase font-bold text-slate-400 tracking-tighter">Orders</span>
                 </div>
+            </div>
+        </div>
+
+        {% if DEMO_MODE and not DEMO_SEEDED %}
+        <div class="bg-white border-2 border-dashed border-amber-200 rounded-3xl p-8 text-center mb-8">
+            <p class="text-slate-600 font-semibold">Seeded demo profile data is not loaded yet.</p>
+            <p class="text-sm text-slate-400 mt-1">Run <span class="font-mono">python manage.py seed_demo</span> to populate donor history.</p>
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+            <div class="bg-white border border-slate-200 rounded-2xl p-4">
+                <span class="block text-xl font-black text-amber-700">{{ donation_groups.pending.count }}</span>
+                <span class="text-[10px] uppercase font-bold text-slate-400">Pending</span>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-2xl p-4">
+                <span class="block text-xl font-black text-emerald-700">{{ donation_groups.verified.count }}</span>
+                <span class="text-[10px] uppercase font-bold text-slate-400">Verified</span>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-2xl p-4">
+                <span class="block text-xl font-black text-red-700">{{ donation_groups.rejected.count }}</span>
+                <span class="text-[10px] uppercase font-bold text-slate-400">Rejected</span>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-2xl p-4">
+                <span class="block text-xl font-black text-sky-700">{{ donation_groups.reserved.count }}</span>
+                <span class="text-[10px] uppercase font-bold text-slate-400">Reserved</span>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-2xl p-4">
+                <span class="block text-xl font-black text-slate-700">{{ donation_groups.sold.count }}</span>
+                <span class="text-[10px] uppercase font-bold text-slate-400">Redistributed</span>
             </div>
         </div>
 
@@ -44,7 +74,9 @@
                     <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:border-emerald-300 transition-all group">
                         <div class="flex justify-between items-start mb-3">
                             <h3 class="font-bold text-slate-900 text-lg">{{ order.name }}</h3>
-                            <span class="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-1 rounded uppercase tracking-wider">Reserved</span>
+                            <span class="text-[10px] font-black {% if order.status == 'sold' %}text-slate-700 bg-slate-100{% else %}text-emerald-700 bg-emerald-100{% endif %} px-2 py-1 rounded uppercase tracking-wider">
+                                {% if order.status == 'sold' %}Completed{% else %}Reserved{% endif %}
+                            </span>
                         </div>
                         <div class="space-y-1 mb-4">
                             <p class="text-sm text-slate-500">Pickup Location: <span class="text-slate-800 font-semibold italic text-xs">ReMedi Corner Partner</span></p>
@@ -81,9 +113,18 @@
                         </div>
                         <div class="flex-1">
                             <h4 class="font-bold text-slate-800 text-sm">{{ donation.name }}</h4>
+                            {% if donation.scientific_name %}
+                            <p class="text-xs text-slate-500">{{ donation.scientific_name }}{% if donation.category %} · {{ donation.category }}{% endif %}</p>
+                            {% endif %}
                             <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                                Status: <span class="{% if donation.status == 'verified' %}text-emerald-600{% else %}text-amber-500{% endif %}">{{ donation.status|title }}</span>
+                                Status:
+                                <span class="{% if donation.status == 'verified' %}text-emerald-600{% elif donation.status == 'rejected' %}text-red-600{% elif donation.status == 'sold' %}text-sky-600{% else %}text-amber-500{% endif %}">
+                                    {% if donation.status == 'verified' and donation.patient_id %}Reserved{% elif donation.status == 'sold' %}Redistributed{% else %}{{ donation.status|title }}{% endif %}
+                                </span>
                             </p>
+                            {% if donation.rejection_reason %}
+                            <p class="text-xs text-red-500 mt-1">{{ donation.rejection_reason }}</p>
+                            {% endif %}
                         </div>
                     </div>
                     {% empty %}
