@@ -7,11 +7,30 @@ from .models import User
 from .forms import DonationForm
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden
+from django.conf import settings
+from django.http import Http404, HttpResponseForbidden
+
+from .services.demo_data import ensure_demo_user
 
 
 def judge_entry(request):
+    if not settings.DEMO_MODE:
+        raise Http404()
     return render(request, 'myapp/judge.html')
+
+
+def judge_demo_login(request, kind):
+    if not settings.DEMO_MODE:
+        raise Http404()
+    if request.method != 'POST' or kind not in {'donor', 'pharmacist'}:
+        raise Http404()
+
+    user, _created = ensure_demo_user(kind)
+    login(request, user)
+
+    if user.role == User.Role.PHARMACIST:
+        return redirect('pharmacist_queue')
+    return redirect('profile')
 
 
 # A simple custom form to include the 'role' field

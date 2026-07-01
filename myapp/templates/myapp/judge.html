@@ -7,12 +7,18 @@
         <p class="text-slate-600 mb-8">This demo uses seeded data for judges.</p>
 
         <div class="flex flex-col sm:flex-row justify-center gap-4">
-            <button type="button" disabled class="bg-emerald-600/60 text-white px-5 py-3 rounded-lg text-sm font-bold cursor-not-allowed">
-                Enter as Demo Donor
-            </button>
-            <button type="button" disabled class="bg-amber-500/60 text-white px-5 py-3 rounded-lg text-sm font-bold cursor-not-allowed">
-                Enter as Demo Central Pharmacist
-            </button>
+            <form method="post" action="{% url 'judge_demo_login' 'donor' %}">
+                {% csrf_token %}
+                <button type="submit" class="w-full sm:w-auto bg-emerald-600 text-white px-5 py-3 rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors">
+                    Enter as Demo Donor
+                </button>
+            </form>
+            <form method="post" action="{% url 'judge_demo_login' 'pharmacist' %}">
+                {% csrf_token %}
+                <button type="submit" class="w-full sm:w-auto bg-amber-500 text-white px-5 py-3 rounded-lg text-sm font-bold hover:bg-amber-600 transition-colors">
+                    Enter as Demo Central Pharmacist
+                </button>
+            </form>
         </div>
     </section>
 </main>
