@@ -47,7 +47,7 @@
             <!-- User Auth Section -->
             <div class="flex items-center gap-4">
                 {% if DEMO_MODE %}
-                    <span class="md:hidden bg-amber-100 text-amber-800 px-2 py-1 rounded-full border border-amber-200 text-[10px] font-bold uppercase tracking-wide">Demo Mode</span>
+                    <a href="{% url 'profile' %}" class="md:hidden bg-amber-100 text-amber-800 px-2 py-1 rounded-full border border-amber-200 text-[10px] font-bold uppercase tracking-wide">Demo Mode</span>
                 {% endif %}
                 {% if user.is_authenticated and user.is_demo_account %}
                     <span class="md:hidden bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full border border-emerald-200 text-[10px] font-bold uppercase tracking-wide">Demo Account</span>
