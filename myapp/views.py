@@ -1,6 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Medicine, ReMediCorner
 from django.db.models import Sum
+from pathlib import Path
+import mimetypes
 from django.contrib.auth import login
 from django.contrib.auth.forms import UserCreationForm
 from .models import User
@@ -8,10 +10,32 @@ from .forms import DonationForm
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
-from django.http import Http404, HttpResponseForbidden
+from django.http import FileResponse, Http404, HttpResponseForbidden
 
 from .services.analytics import calculate_demo_analytics, calculate_medicine_analytics, demo_medicine_queryset
 from .services.demo_data import ensure_demo_user
+from .services.image_processing import compress_uploaded_image
+
+
+def hackathon_media_serve(request, path):
+    """Hackathon/demo-only media serving fallback.
+
+    This is temporary and should be replaced with proper static/media storage
+    before production use beyond the demo environment.
+    """
+    media_root = Path(settings.MEDIA_ROOT).resolve()
+    requested_path = (media_root / path).resolve()
+
+    try:
+        requested_path.relative_to(media_root)
+    except ValueError:
+        raise Http404()
+
+    if not requested_path.is_file():
+        raise Http404()
+
+    content_type, _encoding = mimetypes.guess_type(requested_path)
+    return FileResponse(open(requested_path, "rb"), content_type=content_type or "application/octet-stream")
 
 
 def judge_entry(request):
@@ -157,6 +181,8 @@ def donate_medicine(request):
             medicine = form.save(commit=False)
             medicine.donor = request.user  # Link the medicine to the logged-in user
             medicine.status = 'pending'    # Ensure it starts as pending
+            if medicine.medicine_image:
+                medicine.medicine_image = compress_uploaded_image(medicine.medicine_image)
             medicine.save()
             return redirect('marketplace')
     else:

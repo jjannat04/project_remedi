@@ -7,6 +7,7 @@ from decimal import Decimal
 import shutil
 import tempfile
 from io import BytesIO
+from pathlib import Path
 
 from .models import Medicine, User
 from .services.analytics import calculate_demo_analytics
@@ -214,3 +215,34 @@ class MedicineImageUploadTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "No Image Medicine")
+
+
+class HackathonMediaServeTests(TestCase):
+    def setUp(self):
+        self.media_root = tempfile.mkdtemp()
+        self.settings_override = override_settings(MEDIA_ROOT=self.media_root)
+        self.settings_override.enable()
+
+    def tearDown(self):
+        self.settings_override.disable()
+        shutil.rmtree(self.media_root, ignore_errors=True)
+
+    def test_existing_image_can_be_served(self):
+        image_path = Path(self.media_root) / "medicines" / "2026" / "07" / "demo.jpg"
+        image_path.parent.mkdir(parents=True, exist_ok=True)
+        image_path.write_bytes(b"demo image bytes")
+
+        response = self.client.get("/media/medicines/2026/07/demo.jpg")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(b"".join(response.streaming_content), b"demo image bytes")
+
+    def test_missing_image_returns_404(self):
+        response = self.client.get("/media/medicines/2026/07/missing.jpg")
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_path_traversal_attempts_are_rejected(self):
+        response = self.client.get("/media/%2e%2e/db.sqlite3")
+
+        self.assertEqual(response.status_code, 404)
