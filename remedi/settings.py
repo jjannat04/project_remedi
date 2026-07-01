@@ -124,7 +124,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 
-
+STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 # ✅ FIXED WHITE NOISE CONFIG (IMPORTANT)
 # Avoid CompressedManifestStaticFilesStorage (causes missing file crash on Render)
 STORAGES = {
