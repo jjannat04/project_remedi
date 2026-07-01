@@ -149,7 +149,7 @@ LOGIN_URL = 'login'
 LOGOUT_REDIRECT_URL = 'marketplace'
 STATIC_ROOT = BASE_DIR / "staticfiles" 
 STATIC_URL = "/static/"
-
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 CLOUDINARY_STORAGE = {
@@ -162,7 +162,7 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
 if USE_CLOUDINARY_STORAGE:
