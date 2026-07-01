@@ -34,7 +34,7 @@ load_dotenv(BASE_DIR / ".env")
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = env_bool("DEBUG", False)
 DEMO_MODE = env_bool("DEMO_MODE", False)
 AI_FALLBACK_ENABLED = env_bool("AI_FALLBACK_ENABLED", True)
 ALLOWED_HOSTS = [
@@ -148,3 +148,5 @@ LOGOUT_REDIRECT_URL = 'marketplace'
 STATIC_ROOT = BASE_DIR / "staticfiles" 
 STATIC_URL = "/static/"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))

@@ -152,7 +152,7 @@ def corner_map(request):
 @login_required
 def donate_medicine(request):
     if request.method == 'POST':
-        form = DonationForm(request.POST)
+        form = DonationForm(request.POST, request.FILES)
         if form.is_valid():
             medicine = form.save(commit=False)
             medicine.donor = request.user  # Link the medicine to the logged-in user

@@ -31,6 +31,7 @@ class Medicine(models.Model):
     scientific_name = models.CharField(max_length=255, blank=True)
     category = models.CharField(max_length=100, blank=True)
     batch_number = models.CharField(max_length=100)
+    medicine_image = models.ImageField(upload_to='medicines/%Y/%m/', blank=True)
     expiry_date = models.DateField()
     original_price = models.DecimalField(max_digits=10, decimal_places=2)
     resale_price = models.DecimalField(max_digits=10, decimal_places=2, editable=False)
