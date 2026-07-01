@@ -124,7 +124,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 
-STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+STATICFILES_STORAGE = "whitenoise.storage.StaticFilesStorage"
 # ✅ FIXED WHITE NOISE CONFIG (IMPORTANT)
 # Avoid CompressedManifestStaticFilesStorage (causes missing file crash on Render)
 STORAGES = {
@@ -132,13 +132,14 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+        "BACKEND": "whitenoise.storage.StaticFilesStorage",
     },
 }
 
 # optional safety (prevents edge-case crashes)
+WHITENOISE_KEEP_ONLY_HASHED_FILES = False
+WHITENOISE_AUTOREFRESH = True
 WHITENOISE_MANIFEST_STRICT = False
-
 
 # CLOUDINARY
 CLOUDINARY_STORAGE = {
@@ -151,3 +152,4 @@ if USE_CLOUDINARY_STORAGE:
     STORAGES["default"] = {
         "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
     }
+
