@@ -31,7 +31,7 @@ class ReMediCornerAdmin(admin.ModelAdmin):
 
 @admin.register(User)
 class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ('username', 'role', 'is_active', 'license_number')
-    list_filter = ('role', 'is_active')
+    list_display = ('username', 'role', 'is_demo_account', 'is_active', 'license_number')
+    list_filter = ('role', 'is_demo_account', 'is_active')
     # Allow quick activation from the list view
     list_editable = ('is_active',)

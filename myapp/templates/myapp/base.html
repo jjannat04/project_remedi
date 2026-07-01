@@ -25,6 +25,9 @@
             <div class="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-600">
                 <a href="{% url 'marketplace' %}" class="hover:text-emerald-600 transition-colors">Marketplace</a>
                 <a href="{% url 'corner_map' %}" class="hover:text-emerald-600 transition-colors">Find Corners</a>
+                {% if DEMO_MODE %}
+                    <span class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full border border-amber-200 text-xs font-bold uppercase tracking-wide">Demo Mode</span>
+                {% endif %}
                 
                 
                 {% if user.is_authenticated %}
@@ -40,6 +43,9 @@
 
             <!-- User Auth Section -->
             <div class="flex items-center gap-4">
+                {% if DEMO_MODE %}
+                    <span class="md:hidden bg-amber-100 text-amber-800 px-2 py-1 rounded-full border border-amber-200 text-[10px] font-bold uppercase tracking-wide">Demo Mode</span>
+                {% endif %}
                 {% if user.is_authenticated %}
                     <div class="flex items-center gap-3">
                         <a href="{% url 'profile' %}" class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-full transition-all">

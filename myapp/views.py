@@ -9,6 +9,11 @@ from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 
+
+def judge_entry(request):
+    return render(request, 'myapp/judge.html')
+
+
 # A simple custom form to include the 'role' field
 class SignUpForm(UserCreationForm):
     class Meta(UserCreationForm.Meta):

@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     path('', views.marketplace, name='marketplace'),
+    path('judge/', views.judge_entry, name='judge_entry'),
     path('signup/', views.signup, name='signup'),
     
     # --- LOGIN & LOGOUT PATHS ---

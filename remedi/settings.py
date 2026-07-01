@@ -13,6 +13,14 @@ import os
 import dj_database_url
 from pathlib import Path
 
+
+def env_bool(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -25,6 +33,8 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
+DEMO_MODE = env_bool("DEMO_MODE", False)
+AI_FALLBACK_ENABLED = env_bool("AI_FALLBACK_ENABLED", True)
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
@@ -68,6 +78,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'myapp.context_processors.demo_mode',
             ],
         },
     },

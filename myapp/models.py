@@ -14,6 +14,7 @@ class User(AbstractUser):
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.PATIENT)
     license_number = models.CharField(max_length=50, blank=True, null=True) # Only for Pharmacists
     phone = models.CharField(max_length=15, blank=True)
+    is_demo_account = models.BooleanField(default=False)
 
 # --- UPDATED MEDICINE MODEL ---
 class Medicine(models.Model):
