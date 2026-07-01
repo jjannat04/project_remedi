@@ -181,8 +181,8 @@ def donate_medicine(request):
             medicine = form.save(commit=False)
             medicine.donor = request.user  # Link the medicine to the logged-in user
             medicine.status = 'pending'    # Ensure it starts as pending
-            if medicine.medicine_image:
-                medicine.medicine_image = compress_uploaded_image(medicine.medicine_image)
+            # if medicine.medicine_image:
+            #     medicine.medicine_image = compress_uploaded_image(medicine.medicine_image)
             medicine.save()
             return redirect('marketplace')
     else:

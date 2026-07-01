@@ -2,7 +2,11 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from decimal import Decimal
 import uuid
+from django.core.exceptions import ValidationError
 
+def validate_image_size(image):
+    if image.size > 5 * 1024 * 1024:  # 5 MB
+        raise ValidationError("Image must be under 5 MB.")
 # --- NEW CUSTOM USER MODEL ---
 class User(AbstractUser):
     class Role(models.TextChoices):

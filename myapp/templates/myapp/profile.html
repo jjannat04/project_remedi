@@ -110,7 +110,9 @@
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm">
                         <div class="w-16 h-16 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 overflow-hidden border border-slate-100">
                             {% if donation.medicine_image %}
-                            <img src="{{ donation.medicine_image.url }}" alt="{{ donation.name }} package" class="w-full h-full object-cover">
+                            <img src="{{ donation.medicine_image.url }}?f_auto,q_auto,w=600"
+                                alt="{{ donation.name }} package"
+                                class="w-full h-full object-cover">
                             {% else %}
                             <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             {% endif %}
