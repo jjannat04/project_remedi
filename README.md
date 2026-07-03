@@ -18,6 +18,8 @@ ReMedi is a Django-based web application designed to bridge the gap between phar
 1. Clone the repo: `git clone <your-repo-link>`
 2. Create venv: `python -m venv .venv`
 3. Activate venv: `.venv\Scripts\activate`
-4. Install Django: `pip install django`
-5. Migrate: `python manage.py migrate`
-6. Run: `python manage.py runserver`
+4. Install requirements: `pip install -r requirements.txt`
+5. Enter repository to where manage.py is located
+6. Migrate: `python manage.py migrate`
+7. Run: `python manage.py runserver`
+8. Open any browser and go to `http://127.0.0.1:8000`
