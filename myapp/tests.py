@@ -1,15 +1,41 @@
 from django.core.management import call_command
+from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.conf import settings
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from unittest.mock import patch
 
 from .models import Medicine, User
+from .services.ai import (
+    MISSING_API_KEY_MESSAGE,
+    OCR_SPACE_AFTER_GEMINI_MESSAGE,
+    OCR_SPACE_EMPTY_TEXT_MESSAGE,
+    PERMISSION_FALLBACK_MESSAGE,
+    QUOTA_FALLBACK_MESSAGE,
+    analyze_medicine_image,
+    analyze_with_ocr_space,
+)
 from .services.analytics import calculate_demo_analytics
+from .services.fallback import get_ocr_fallback_result
 from .services.demo_data import (
     DEMO_BATCH_PREFIX,
     DEMO_DONOR_EMAIL,
     DEMO_PATIENT_EMAIL,
     DEMO_PHARMACIST_EMAIL,
 )
+
+
+def fake_image_file(name="package.jpg", content=b"same image bytes"):
+    return SimpleUploadedFile(name, content, content_type="image/jpeg")
+
+
+class FakeQuotaError(Exception):
+    status_code = 429
+
+
+class FakePermissionError(Exception):
+    status_code = 403
 
 
 class SeedDemoCommandTests(TestCase):
@@ -100,3 +126,260 @@ class SeededDemoPageTests(TestCase):
         self.assertEqual(queue_response.status_code, 200)
         self.assertContains(queue_response, "Verification Hub")
         self.assertContains(queue_response, "Napa 500 mg Tablet")
+
+
+class GeminiOcrFoundationTests(TestCase):
+    def setUp(self):
+        cache.clear()
+
+    def test_default_gemini_model_is_current_flash_model(self):
+        self.assertEqual(settings.GEMINI_MODEL, "gemini-2.5-flash")
+        self.assertNotEqual(settings.GEMINI_MODEL, "gemini-2.0-flash")
+        self.assertIn("gemini-2.5-flash-lite", settings.GEMINI_FALLBACK_MODELS)
+
+    @override_settings(GEMINI_API_KEY="", OCR_SPACE_ENABLED=False, OCR_SPACE_API_KEY="")
+    def test_missing_api_key_uses_fallback(self):
+        with self.assertLogs("myapp.services.ai", level="WARNING"):
+            result = analyze_medicine_image(fake_image_file())
+
+        self.assertEqual(result, get_ocr_fallback_result(MISSING_API_KEY_MESSAGE))
+        self.assertTrue(result["used_fallback"])
+        self.assertEqual(result["message"], MISSING_API_KEY_MESSAGE)
+
+    @override_settings(
+        GEMINI_API_KEY="demo-key",
+        GEMINI_MODEL="gemini-test",
+        GEMINI_FALLBACK_MODELS=[],
+        OCR_SPACE_ENABLED=False,
+        OCR_SPACE_API_KEY="",
+    )
+    @patch("myapp.services.ai._generate_gemini_text", return_value="not valid json")
+    def test_invalid_gemini_response_uses_fallback(self, _mock_generate):
+        with self.assertLogs("myapp.services.ai", level="ERROR") as logs:
+            result = analyze_medicine_image(fake_image_file())
+
+        self.assertTrue(result["used_fallback"])
+        self.assertEqual(result["source"], "fallback")
+        self.assertIn("Gemini OCR returned invalid JSON.", "\n".join(logs.output))
+        self.assertIn("Raw Gemini OCR response", "\n".join(logs.output))
+
+    @override_settings(
+        GEMINI_API_KEY="demo-key",
+        GEMINI_MODEL="gemini-test",
+        GEMINI_FALLBACK_MODELS=[],
+        OCR_SPACE_ENABLED=False,
+        OCR_SPACE_API_KEY="",
+    )
+    @patch("myapp.services.ai._generate_gemini_text", side_effect=FakeQuotaError("429 quota exceeded"))
+    def test_simulated_gemini_429_error_uses_quota_message(self, _mock_generate):
+        with self.assertLogs("myapp.services.ai", level="INFO"):
+            result = analyze_medicine_image(fake_image_file())
+
+        self.assertTrue(result["used_fallback"])
+        self.assertEqual(result["source"], "fallback")
+        self.assertEqual(result["message"], QUOTA_FALLBACK_MESSAGE)
+
+    @override_settings(
+        GEMINI_API_KEY="demo-key",
+        GEMINI_MODEL="gemini-test",
+        GEMINI_FALLBACK_MODELS=[],
+        OCR_SPACE_ENABLED=False,
+        OCR_SPACE_API_KEY="",
+    )
+    @patch("myapp.services.ai._generate_gemini_text", side_effect=FakePermissionError("403 PERMISSION_DENIED"))
+    def test_simulated_gemini_403_error_uses_permission_message(self, _mock_generate):
+        with self.assertLogs("myapp.services.ai", level="INFO"):
+            result = analyze_medicine_image(fake_image_file())
+
+        self.assertTrue(result["used_fallback"])
+        self.assertEqual(result["source"], "fallback")
+        self.assertEqual(result["message"], PERMISSION_FALLBACK_MESSAGE)
+
+    @override_settings(
+        GEMINI_API_KEY="demo-key",
+        GEMINI_MODEL="gemini-test",
+        GEMINI_FALLBACK_MODELS=[],
+        OCR_SPACE_ENABLED=True,
+        OCR_SPACE_API_KEY="ocr-key",
+    )
+    @patch("myapp.services.ai._generate_gemini_text", side_effect=FakeQuotaError("429 quota exceeded"))
+    @patch(
+        "myapp.services.ai._post_ocr_space",
+        return_value='{"IsErroredOnProcessing":false,"ParsedResults":[{"ParsedText":"Napa Extra\\n500 mg\\nBatch A1\\nEXP 12/2028\\nBeximco Pharmaceuticals Ltd"}]}',
+    )
+    def test_gemini_unavailable_uses_ocr_space_success(self, mock_ocr_space, mock_gemini):
+        with self.assertLogs("myapp.services.ai", level="INFO"):
+            result = analyze_medicine_image(fake_image_file())
+
+        self.assertEqual(result["source"], "ocr_space")
+        self.assertFalse(result["used_fallback"])
+        self.assertEqual(result["medicine_name"], "Napa Extra")
+        self.assertEqual(result["dosage"], "500 mg")
+        self.assertEqual(result["batch_number"], "A1")
+        self.assertEqual(result["message"], OCR_SPACE_AFTER_GEMINI_MESSAGE)
+        self.assertEqual(mock_gemini.call_count, 1)
+        self.assertEqual(mock_ocr_space.call_count, 1)
+
+    @override_settings(
+        GEMINI_API_KEY="demo-key",
+        GEMINI_MODEL="gemini-first",
+        GEMINI_FALLBACK_MODELS=["gemini-second"],
+        OCR_SPACE_ENABLED=False,
+        OCR_SPACE_API_KEY="",
+    )
+    @patch(
+        "myapp.services.ai._generate_gemini_text",
+        side_effect=[
+            FakeQuotaError("429 quota exceeded"),
+            '{"medicine_name":"Napa","scientific_name":"Paracetamol","dosage":"500 mg","manufacturer":"Beximco","batch_number":"A1","expiry_text":"EXP 12/2028","confidence":0.82}',
+        ],
+    )
+    def test_first_gemini_quota_failure_tries_next_model(self, mock_gemini):
+        with self.assertLogs("myapp.services.ai", level="INFO"):
+            result = analyze_medicine_image(fake_image_file())
+
+        self.assertEqual(result["source"], "gemini")
+        self.assertEqual(result["medicine_name"], "Napa")
+        self.assertEqual(mock_gemini.call_args_list[0].args[1], "gemini-first")
+        self.assertEqual(mock_gemini.call_args_list[1].args[1], "gemini-second")
+
+    @override_settings(
+        GEMINI_API_KEY="demo-key",
+        GEMINI_MODEL="gemini-first",
+        GEMINI_FALLBACK_MODELS=["gemini-second"],
+        OCR_SPACE_ENABLED=True,
+        OCR_SPACE_API_KEY="ocr-key",
+    )
+    @patch("myapp.services.ai._generate_gemini_text", side_effect=FakeQuotaError("429 quota exceeded"))
+    @patch(
+        "myapp.services.ai._post_ocr_space",
+        return_value='{"IsErroredOnProcessing":false,"ParsedResults":[{"ParsedText":"Napa Extra\\n500 mg"}]}',
+    )
+    def test_all_gemini_models_failing_then_tries_ocr_space(self, mock_ocr_space, mock_gemini):
+        with self.assertLogs("myapp.services.ai", level="INFO"):
+            result = analyze_medicine_image(fake_image_file())
+
+        self.assertEqual(result["source"], "ocr_space")
+        self.assertEqual(result["message"], OCR_SPACE_AFTER_GEMINI_MESSAGE)
+        self.assertEqual(mock_gemini.call_count, 2)
+        self.assertEqual(mock_ocr_space.call_count, 1)
+
+    @override_settings(GEMINI_API_KEY="", OCR_SPACE_ENABLED=True, OCR_SPACE_API_KEY="ocr-key")
+    @patch(
+        "myapp.services.ai._post_ocr_space",
+        return_value='{"IsErroredOnProcessing":false,"ParsedResults":[{"ParsedText":""}]}',
+    )
+    def test_ocr_space_empty_parsed_text_returns_clear_fallback_message(self, _mock_ocr_space):
+        with self.assertLogs("myapp.services.ai", level="INFO"):
+            result = analyze_medicine_image(fake_image_file())
+
+        self.assertEqual(result["source"], "fallback")
+        self.assertTrue(result["used_fallback"])
+        self.assertEqual(result["message"], OCR_SPACE_EMPTY_TEXT_MESSAGE)
+
+    @override_settings(GEMINI_API_KEY="", OCR_SPACE_ENABLED=True, OCR_SPACE_API_KEY="ocr-key")
+    @patch("myapp.services.ai._post_ocr_space", side_effect=OSError("network unavailable"))
+    def test_ocr_space_unavailable_uses_fallback_json(self, _mock_ocr_space):
+        with self.assertLogs("myapp.services.ai", level="INFO"):
+            result = analyze_medicine_image(fake_image_file())
+
+        self.assertEqual(result["source"], "fallback")
+        self.assertTrue(result["used_fallback"])
+        self.assertEqual(result["message"], MISSING_API_KEY_MESSAGE)
+
+    @override_settings(OCR_SPACE_ENABLED=True, OCR_SPACE_API_KEY="ocr-key")
+    @patch(
+        "myapp.services.ai._post_ocr_space",
+        return_value='{"IsErroredOnProcessing":false,"ParsedResults":[{"ParsedText":"Losectil 20mg Capsule\\nLOT ZX-44\\nExpiry 05/2028\\nSquare Pharma Limited"}]}',
+    )
+    def test_ocr_space_result_parsing(self, _mock_ocr_space):
+        result = analyze_with_ocr_space(fake_image_file())
+
+        self.assertEqual(result["source"], "ocr_space")
+        self.assertEqual(result["medicine_name"], "Losectil 20mg Capsule")
+        self.assertEqual(result["dosage"], "20mg")
+        self.assertEqual(result["batch_number"], "ZX-44")
+        self.assertEqual(result["expiry_text"], "Expiry 05/2028")
+        self.assertEqual(result["manufacturer"], "Square Pharma Limited")
+        self.assertEqual(result["confidence"], 0.6)
+
+    @override_settings(GEMINI_API_KEY="", OCR_SPACE_ENABLED=True, OCR_SPACE_API_KEY="ocr-key")
+    @patch(
+        "myapp.services.ai._post_ocr_space",
+        return_value='{"IsErroredOnProcessing":false,"ParsedResults":[{"ParsedText":"Napa Extra\\n500 mg"}]}',
+    )
+    def test_cache_hit_skips_ocr_space_request(self, mock_ocr_space):
+        with self.assertLogs("myapp.services.ai", level="INFO"):
+            first = analyze_medicine_image(fake_image_file())
+            second = analyze_medicine_image(fake_image_file())
+
+        self.assertEqual(first, second)
+        self.assertEqual(first["source"], "ocr_space")
+        self.assertEqual(mock_ocr_space.call_count, 1)
+
+    @override_settings(GEMINI_API_KEY="demo-key", GEMINI_MODEL="gemini-test", GEMINI_FALLBACK_MODELS=[])
+    @patch(
+        "myapp.services.ai._generate_gemini_text",
+        return_value='```json\n{"medicine_name":"Napa","scientific_name":"Paracetamol","dosage":"500 mg","manufacturer":"Beximco","batch_number":"A1","expiry_text":"EXP 12/2028","confidence":0.87}\n```',
+    )
+    def test_markdown_fenced_gemini_json_is_parsed(self, _mock_generate):
+        result = analyze_medicine_image(fake_image_file())
+
+        self.assertEqual(result["source"], "gemini")
+        self.assertFalse(result["used_fallback"])
+        self.assertEqual(result["medicine_name"], "Napa")
+        self.assertEqual(result["confidence"], 0.87)
+
+    @override_settings(GEMINI_API_KEY="demo-key", GEMINI_MODEL="gemini-test", GEMINI_FALLBACK_MODELS=[])
+    @patch(
+        "myapp.services.ai._generate_gemini_text",
+        return_value='{"medicine_name":"Napa","scientific_name":"Paracetamol","dosage":"500 mg","manufacturer":"Beximco","batch_number":"A1","expiry_text":"EXP 12/2028","confidence":0.87}',
+    )
+    def test_cache_hit_avoids_repeated_ai_calls(self, mock_generate):
+        first = analyze_medicine_image(fake_image_file())
+        second = analyze_medicine_image(fake_image_file())
+
+        self.assertEqual(first, second)
+        self.assertEqual(first["source"], "gemini")
+        self.assertEqual(mock_generate.call_count, 1)
+
+    @override_settings(DEMO_MODE=False)
+    def test_ocr_page_returns_404_when_demo_mode_false(self):
+        response = self.client.get(reverse("judge_ocr"))
+
+        self.assertEqual(response.status_code, 404)
+
+    @override_settings(DEMO_MODE=True, GEMINI_API_KEY="", OCR_SPACE_ENABLED=False, OCR_SPACE_API_KEY="")
+    def test_ocr_page_works_in_demo_mode(self):
+        with self.assertLogs("myapp.services.ai", level="WARNING"):
+            response = self.client.post(
+                reverse("judge_ocr"),
+                {"medicine_image": fake_image_file()},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Extracted JSON")
+        self.assertContains(response, "fallback")
+        self.assertContains(response, MISSING_API_KEY_MESSAGE)
+
+    @override_settings(
+        DEMO_MODE=True,
+        GEMINI_API_KEY="demo-key",
+        GEMINI_MODEL="gemini-test",
+        GEMINI_FALLBACK_MODELS=[],
+        OCR_SPACE_ENABLED=False,
+        OCR_SPACE_API_KEY="",
+    )
+    @patch("myapp.services.ai._generate_gemini_text", side_effect=FakeQuotaError("429 quota exceeded"))
+    def test_ocr_page_returns_200_and_json_during_quota_failure(self, _mock_generate):
+        with self.assertLogs("myapp.services.ai", level="INFO"):
+            response = self.client.post(
+                reverse("judge_ocr"),
+                {"medicine_image": fake_image_file()},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, QUOTA_FALLBACK_MESSAGE)
+        self.assertContains(response, "Extracted JSON")
+        self.assertContains(response, "&quot;source&quot;: &quot;fallback&quot;")
+        self.assertContains(response, "&quot;used_fallback&quot;: true")

@@ -37,6 +37,15 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key")
 DEBUG = False
 DEMO_MODE = env_bool("DEMO_MODE", False)
 AI_FALLBACK_ENABLED = env_bool("AI_FALLBACK_ENABLED", True)
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_FALLBACK_MODELS = [
+    model.strip()
+    for model in os.environ.get("GEMINI_FALLBACK_MODELS", "gemini-2.5-flash,gemini-2.5-flash-lite").split(",")
+    if model.strip()
+]
+OCR_SPACE_API_KEY = os.environ.get("OCR_SPACE_API_KEY", "")
+OCR_SPACE_ENABLED = env_bool("OCR_SPACE_ENABLED", True)
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
