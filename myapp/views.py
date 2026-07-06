@@ -160,27 +160,45 @@ def pharmacist_queue(request):
 
 @login_required
 def pharmacist_review(request, med_id):
-    """Temporary pharmacist review workflow; final persistence comes later."""
+    """Pharmacist human-in-the-loop review workflow."""
     if request.user.role != User.Role.PHARMACIST or not request.user.is_active:
         return HttpResponseForbidden("Your pharmacist account is either not verified or you don't have permission.")
 
-    medicine = get_object_or_404(Medicine, id=med_id, status='pending')
+    medicine = get_object_or_404(Medicine, id=med_id)
     evaluation = None
     explanation = None
     success_message = None
     rejection_error = None
+    reviewed_at = medicine.verified_at or medicine.rejected_at
+    is_reviewed = medicine.status in {'verified', 'rejected', 'sold'}
 
     if medicine.medicine_image:
         evaluation = evaluate_donation(medicine.medicine_image)
         explanation = build_explanation(evaluation)
 
-    if request.method == 'POST':
+    if request.method == 'POST' and not is_reviewed:
         action = request.POST.get('action')
         if action == 'approve':
-            success_message = "Medicine approved successfully."
+            medicine.status = 'verified'
+            medicine.is_physical_intact = True
+            medicine.is_authentic = True
+            medicine.is_expiry_valid = True
+            medicine.verified_at = timezone.now()
+            medicine.rejected_at = None
+            medicine.rejection_reason = ''
+            medicine.save()
+            reviewed_at = medicine.verified_at
+            is_reviewed = True
+            success_message = "Medicine verified successfully."
         elif action == 'reject':
             rejection_reason = (request.POST.get('rejection_reason') or '').strip()
             if rejection_reason:
+                medicine.status = 'rejected'
+                medicine.rejected_at = timezone.now()
+                medicine.rejection_reason = rejection_reason
+                medicine.save()
+                reviewed_at = medicine.rejected_at
+                is_reviewed = True
                 success_message = "Medicine rejected successfully."
             else:
                 rejection_error = "Reason for rejection is required."
@@ -191,6 +209,8 @@ def pharmacist_review(request, med_id):
         'explanation': explanation,
         'success_message': success_message,
         'rejection_error': rejection_error,
+        'is_reviewed': is_reviewed,
+        'reviewed_at': reviewed_at,
     })
 
 

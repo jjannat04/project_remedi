@@ -1,0 +1,10 @@
+      PID    PPID    PGID     WINPID   TTY         UID    STIME COMMAND
+I    1049       1    1049      15776  cons5     197609 20:28:09 /usr/bin/less
+I    1047       1    1047      25632  cons4     197609 20:27:18 /usr/bin/less
+I    1050       1    1050       3864  cons6     197609 20:29:06 /usr/bin/less
+     1308    1145    1308      26464  cons1     197609 01:51:59 /usr/bin/PS
+     1187       1    1187      23108  cons3     197609 01:23:44 /usr/bin/bash
+I    1051       1    1051      21948  cons7     197609 20:29:21 /usr/bin/less
+I    1034       1    1034      19224  cons2     197609 20:22:46 /usr/bin/less
+I    1025       1    1025      17008  cons0     197609 20:17:28 /usr/bin/less
+     1145       1    1145      24912  cons1     197609 01:23:41 /usr/bin/bash

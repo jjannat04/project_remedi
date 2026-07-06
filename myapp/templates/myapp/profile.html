@@ -125,11 +125,11 @@
                             <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
                                 Status:
                                 <span class="{% if donation.status == 'verified' %}text-emerald-600{% elif donation.status == 'rejected' %}text-red-600{% elif donation.status == 'sold' %}text-sky-600{% else %}text-amber-500{% endif %}">
-                                    {% if donation.status == 'verified' and donation.patient_id %}Reserved{% elif donation.status == 'sold' %}Redistributed{% else %}{{ donation.status|title }}{% endif %}
+                                    {% if donation.status == 'pending' %}Pending Review{% elif donation.status == 'verified' and donation.patient_id %}Reserved{% elif donation.status == 'verified' %}Verified{% elif donation.status == 'rejected' %}Rejected{% elif donation.status == 'sold' %}Redistributed{% else %}{{ donation.status|title }}{% endif %}
                                 </span>
                             </p>
                             {% if donation.rejection_reason %}
-                            <p class="text-xs text-red-500 mt-1">{{ donation.rejection_reason }}</p>
+                            <p class="text-xs text-red-500 mt-1"><span class="font-bold">Rejection Reason:</span> {{ donation.rejection_reason }}</p>
                             {% endif %}
                         </div>
                     </div>

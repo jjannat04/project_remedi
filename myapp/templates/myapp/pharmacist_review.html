@@ -15,6 +15,17 @@
         </div>
         {% endif %}
 
+        {% if is_reviewed %}
+        <div class="rounded-xl border {% if medicine.status == 'verified' or medicine.status == 'sold' %}border-emerald-200 bg-emerald-50 text-emerald-800{% else %}border-red-200 bg-red-50 text-red-800{% endif %} p-4 text-sm font-bold">
+            {% if medicine.status == 'verified' or medicine.status == 'sold' %}
+            Verified by Pharmacist
+            {% else %}
+            Rejected by Pharmacist
+            {% endif %}
+            {% if reviewed_at %}<span class="block font-semibold mt-1">Reviewed at {{ reviewed_at|date:"M d, Y H:i" }}</span>{% endif %}
+        </div>
+        {% endif %}
+
         <section class="rounded-xl border border-slate-200 bg-white p-5">
             <h2 class="text-lg font-black text-slate-900 mb-4">Medicine Image</h2>
             {% if medicine.medicine_image %}
@@ -101,6 +112,21 @@
                         {% endfor %}
                     </ul>
                 </div>
+
+                {% if is_reviewed %}
+                <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-center">
+                    <p class="text-xs font-black uppercase tracking-widest text-slate-400">AI Recommendation</p>
+                    <p class="text-lg font-black text-slate-900">{{ evaluation.decision.decision|title }}</p>
+                    <p class="my-3 text-slate-400 font-black">↓</p>
+                    <p class="text-xs font-black uppercase tracking-widest text-slate-400">Final Decision</p>
+                    <p class="text-lg font-black {% if medicine.status == 'verified' or medicine.status == 'sold' %}text-emerald-700{% else %}text-red-700{% endif %}">
+                        {% if medicine.status == 'verified' or medicine.status == 'sold' %}Verified{% else %}Rejected{% endif %}
+                    </p>
+                    {% if medicine.rejection_reason %}
+                    <p class="text-sm text-red-700 mt-3"><span class="font-bold">Reason:</span> {{ medicine.rejection_reason }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
             {% else %}
             <p class="text-sm text-slate-500 font-semibold">AI evaluation is unavailable because no medicine image was uploaded.</p>
@@ -109,6 +135,11 @@
 
         <section class="rounded-xl border-2 border-slate-900 bg-white p-5">
             <h2 class="text-xl font-black text-slate-900 mb-4">Human Decision</h2>
+            {% if is_reviewed %}
+            <div class="rounded-lg bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700">
+                This medicine has already been reviewed. Further review actions are disabled.
+            </div>
+            {% else %}
             <form method="post" class="space-y-4">
                 {% csrf_token %}
                 <div class="flex flex-wrap gap-3">
@@ -128,6 +159,7 @@
                     {% endif %}
                 </div>
             </form>
+            {% endif %}
             <p class="mt-5 rounded-lg bg-slate-900 px-4 py-3 text-center text-sm font-black text-white">
                 AI provides recommendations. The pharmacist makes the final decision.
             </p>

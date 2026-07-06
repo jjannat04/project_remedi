@@ -925,19 +925,21 @@ class PharmacistReviewWorkflowTests(TestCase):
 
     @override_settings(DEMO_MODE=True)
     @patch("myapp.views.evaluate_donation")
-    def test_approve_action_succeeds_without_saving(self, mock_evaluate):
+    def test_approve_updates_verification_status(self, mock_evaluate):
         mock_evaluate.return_value = self.evaluation_result()
         self.client.force_login(self.pharmacist)
 
         response = self.client.post(self.review_url(), {"action": "approve"})
 
-        self.assertContains(response, "Medicine approved successfully.")
+        self.assertContains(response, "Medicine verified successfully.")
         self.medicine.refresh_from_db()
-        self.assertEqual(self.medicine.status, "pending")
+        self.assertEqual(self.medicine.status, "verified")
+        self.assertIsNotNone(self.medicine.verified_at)
+        self.assertEqual(self.medicine.rejection_reason, "")
 
     @override_settings(DEMO_MODE=True)
     @patch("myapp.views.evaluate_donation")
-    def test_reject_action_succeeds_with_reason_without_saving(self, mock_evaluate):
+    def test_reject_updates_verification_status(self, mock_evaluate):
         mock_evaluate.return_value = self.evaluation_result(decision="reject", risk_score=100, risk_level="High")
         self.client.force_login(self.pharmacist)
 
@@ -948,8 +950,22 @@ class PharmacistReviewWorkflowTests(TestCase):
 
         self.assertContains(response, "Medicine rejected successfully.")
         self.medicine.refresh_from_db()
-        self.assertEqual(self.medicine.status, "pending")
-        self.assertEqual(self.medicine.rejection_reason, "")
+        self.assertEqual(self.medicine.status, "rejected")
+        self.assertIsNotNone(self.medicine.rejected_at)
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_reject_stores_reason(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result(decision="reject", risk_score=100, risk_level="High")
+        self.client.force_login(self.pharmacist)
+
+        self.client.post(self.review_url(), {
+            "action": "reject",
+            "rejection_reason": "Seal appears opened.",
+        })
+
+        self.medicine.refresh_from_db()
+        self.assertEqual(self.medicine.rejection_reason, "Seal appears opened.")
 
     @override_settings(DEMO_MODE=True)
     @patch("myapp.views.evaluate_donation")
@@ -997,6 +1013,79 @@ class PharmacistReviewWorkflowTests(TestCase):
 
         self.assertContains(response, "AI assists. Pharmacist decides.")
         self.assertContains(response, "AI provides recommendations. The pharmacist makes the final decision.")
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_verified_medicine_appears_on_donor_dashboard(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result()
+        self.client.force_login(self.pharmacist)
+        self.client.post(self.review_url(), {"action": "approve"})
+
+        self.client.force_login(self.donor)
+        response = self.client.get(reverse("profile"))
+
+        self.assertContains(response, "Review Medicine")
+        self.assertContains(response, "Verified")
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_rejected_medicine_appears_on_donor_dashboard(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result(decision="reject", risk_score=100, risk_level="High")
+        self.client.force_login(self.pharmacist)
+        self.client.post(self.review_url(), {
+            "action": "reject",
+            "rejection_reason": "Expiry text unreadable.",
+        })
+
+        self.client.force_login(self.donor)
+        response = self.client.get(reverse("profile"))
+
+        self.assertContains(response, "Review Medicine")
+        self.assertContains(response, "Rejected")
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_dashboard_shows_rejection_reason(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result(decision="reject", risk_score=100, risk_level="High")
+        self.client.force_login(self.pharmacist)
+        self.client.post(self.review_url(), {
+            "action": "reject",
+            "rejection_reason": "Expiry text unreadable.",
+        })
+
+        self.client.force_login(self.donor)
+        response = self.client.get(reverse("profile"))
+
+        self.assertContains(response, "Rejection Reason:")
+        self.assertContains(response, "Expiry text unreadable.")
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_reviewed_medicines_cannot_be_reviewed_again(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result()
+        self.client.force_login(self.pharmacist)
+        self.client.post(self.review_url(), {"action": "approve"})
+
+        response = self.client.get(self.review_url())
+
+        self.assertContains(response, "Verified by Pharmacist")
+        self.assertContains(response, "Further review actions are disabled.")
+        self.assertNotContains(response, 'name="action" value="approve"')
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_no_duplicate_reviews(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result()
+        self.client.force_login(self.pharmacist)
+        self.client.post(self.review_url(), {"action": "approve"})
+        self.client.post(self.review_url(), {
+            "action": "reject",
+            "rejection_reason": "Trying to overwrite.",
+        })
+
+        self.medicine.refresh_from_db()
+        self.assertEqual(self.medicine.status, "verified")
+        self.assertEqual(self.medicine.rejection_reason, "")
 
 
 class MedicineImageUploadTests(TestCase):
