@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Medicine, ReMediCorner
 from django.db.models import Sum
+import json
 from pathlib import Path
 import mimetypes
 from django.contrib.auth import login
@@ -13,6 +14,7 @@ from django.conf import settings
 from django.http import FileResponse, Http404, HttpResponseForbidden
 
 from .services.analytics import calculate_demo_analytics, calculate_medicine_analytics, demo_medicine_queryset
+from .services.ai import analyze_medicine_image
 from .services.demo_data import ensure_demo_user
 from .services.image_processing import compress_uploaded_image
 
@@ -56,6 +58,24 @@ def judge_demo_login(request, kind):
     if user.role == User.Role.PHARMACIST:
         return redirect('pharmacist_queue')
     return redirect('profile')
+
+
+def judge_ocr(request):
+    if not settings.DEMO_MODE:
+        raise Http404()
+
+    result = None
+    result_json = None
+    if request.method == 'POST':
+        image_file = request.FILES.get('medicine_image')
+        if image_file:
+            result = analyze_medicine_image(image_file)
+            result_json = json.dumps(result, indent=2)
+
+    return render(request, 'myapp/judge_ocr.html', {
+        'result': result,
+        'result_json': result_json,
+    })
 
 
 # A simple custom form to include the 'role' field
@@ -181,8 +201,8 @@ def donate_medicine(request):
             medicine = form.save(commit=False)
             medicine.donor = request.user  # Link the medicine to the logged-in user
             medicine.status = 'pending'    # Ensure it starts as pending
-            # if medicine.medicine_image:
-            #     medicine.medicine_image = compress_uploaded_image(medicine.medicine_image)
+            if medicine.medicine_image:
+                medicine.medicine_image = compress_uploaded_image(medicine.medicine_image)
             medicine.save()
             return redirect('marketplace')
     else:
