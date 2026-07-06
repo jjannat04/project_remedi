@@ -17,7 +17,9 @@ from .services.ai import (
     analyze_with_ocr_space,
 )
 from .services.analytics import calculate_demo_analytics
+from .services.decision import make_ai_decision
 from .services.fallback import get_ocr_fallback_result
+from .services.safety import analyze_image_safety, calculate_donation_risk
 from .services.demo_data import (
     DEMO_BATCH_PREFIX,
     DEMO_DONOR_EMAIL,
@@ -126,6 +128,173 @@ class SeededDemoPageTests(TestCase):
         self.assertEqual(queue_response.status_code, 200)
         self.assertContains(queue_response, "Verification Hub")
         self.assertContains(queue_response, "Napa 500 mg Tablet")
+
+
+class SafetyScreeningTests(TestCase):
+    def test_low_risk_donation(self):
+        ocr_result = {
+            "medicine_name": "Napa",
+            "batch_number": "A1",
+            "expiry_text": "EXP 12/2028",
+            "confidence": 0.92,
+        }
+        safety_result = analyze_image_safety(fake_image_file(content=b"x" * 2048), ocr_result)
+        risk = calculate_donation_risk(ocr_result, safety_result)
+
+        self.assertFalse(safety_result["tampered_seal"])
+        self.assertFalse(safety_result["unclear_expiry"])
+        self.assertEqual(risk["risk_score"], 0)
+        self.assertEqual(risk["risk_level"], "Low")
+        self.assertEqual(risk["reasons"], [])
+
+    def test_medium_risk_donation(self):
+        ocr_result = {
+            "medicine_name": "Napa",
+            "batch_number": "",
+            "expiry_text": "EXP 12/2028",
+            "confidence": 0.65,
+        }
+        safety_result = analyze_image_safety(fake_image_file(content=b"x" * 2048), ocr_result)
+        risk = calculate_donation_risk(ocr_result, safety_result)
+
+        self.assertEqual(risk["risk_score"], 40)
+        self.assertEqual(risk["risk_level"], "Medium")
+        self.assertIn("OCR confidence is below 0.8.", risk["reasons"])
+        self.assertIn("Batch number is missing.", risk["reasons"])
+
+    def test_high_risk_donation(self):
+        ocr_result = {
+            "medicine_name": "Opened seal medicine",
+            "batch_number": "",
+            "expiry_text": "",
+            "confidence": 0.51,
+        }
+        safety_result = analyze_image_safety(fake_image_file(name="opened-seal.jpg", content=b"x" * 2048), ocr_result)
+        risk = calculate_donation_risk(ocr_result, safety_result)
+
+        self.assertTrue(safety_result["tampered_seal"])
+        self.assertTrue(safety_result["unclear_expiry"])
+        self.assertEqual(risk["risk_score"], 100)
+        self.assertEqual(risk["risk_level"], "High")
+        self.assertIn("Tampering or seal issue detected.", risk["reasons"])
+
+    def test_risk_score_is_capped_at_100(self):
+        ocr_result = {
+            "batch_number": "",
+            "expiry_text": "",
+            "confidence": 0.0,
+        }
+        safety_result = {"unclear_expiry": True, "tampered_seal": True}
+        risk = calculate_donation_risk(ocr_result, safety_result)
+
+        self.assertEqual(risk["risk_score"], 100)
+        self.assertEqual(risk["risk_level"], "High")
+
+    def test_missing_ocr_fields_are_handled(self):
+        safety_result = analyze_image_safety(fake_image_file(content=b"x" * 2048), {})
+        risk = calculate_donation_risk({}, safety_result)
+
+        self.assertTrue(safety_result["unclear_expiry"])
+        self.assertEqual(risk["risk_score"], 70)
+        self.assertEqual(risk["risk_level"], "High")
+        self.assertIn("Expiry is unclear or missing.", risk["reasons"])
+        self.assertIn("OCR confidence is below 0.8.", risk["reasons"])
+        self.assertIn("Batch number is missing.", risk["reasons"])
+
+
+class DonationDecisionTests(TestCase):
+    def test_accept_decision(self):
+        decision = make_ai_decision(
+            {"confidence": 0.91},
+            {
+                "damaged_packaging": False,
+                "tampered_seal": False,
+                "unclear_expiry": False,
+                "suspicious_condition": False,
+                "low_image_quality": False,
+            },
+            {"risk_score": 20},
+        )
+
+        self.assertEqual(decision["decision"], "accept")
+        self.assertEqual(decision["confidence"], 0.90)
+        self.assertEqual(
+            decision["reasons"],
+            ["Risk is low, no safety issues were detected, and OCR confidence is acceptable."],
+        )
+
+    def test_review_because_of_ocr_confidence(self):
+        decision = make_ai_decision(
+            {"confidence": 0.72},
+            {"unclear_expiry": False, "tampered_seal": False, "damaged_packaging": False},
+            {"risk_score": 20},
+        )
+
+        self.assertEqual(decision["decision"], "review")
+        self.assertEqual(decision["confidence"], 0.65)
+        self.assertEqual(decision["reasons"], ["OCR confidence is below 0.8."])
+
+    def test_review_because_of_unclear_expiry(self):
+        decision = make_ai_decision(
+            {"confidence": 0.91},
+            {"unclear_expiry": True, "tampered_seal": False, "damaged_packaging": False},
+            {"risk_score": 20},
+        )
+
+        self.assertEqual(decision["decision"], "review")
+        self.assertEqual(decision["confidence"], 0.65)
+        self.assertEqual(decision["reasons"], ["Expiry is unclear."])
+
+    def test_reject_because_of_tampering(self):
+        decision = make_ai_decision(
+            {"confidence": 0.91},
+            {"tampered_seal": True, "damaged_packaging": False, "unclear_expiry": False},
+            {"risk_score": 20},
+        )
+
+        self.assertEqual(decision["decision"], "reject")
+        self.assertEqual(decision["confidence"], 0.95)
+        self.assertEqual(decision["reasons"], ["Tampered seal was detected."])
+
+    def test_reject_because_of_damage(self):
+        decision = make_ai_decision(
+            {"confidence": 0.91},
+            {"damaged_packaging": True, "tampered_seal": False, "unclear_expiry": False},
+            {"risk_score": 20},
+        )
+
+        self.assertEqual(decision["decision"], "reject")
+        self.assertEqual(decision["confidence"], 0.95)
+        self.assertEqual(decision["reasons"], ["Damaged packaging was detected."])
+
+    def test_reject_because_of_high_risk(self):
+        decision = make_ai_decision(
+            {"confidence": 0.91},
+            {"damaged_packaging": False, "tampered_seal": False, "unclear_expiry": False},
+            {"risk_score": 70},
+        )
+
+        self.assertEqual(decision["decision"], "reject")
+        self.assertEqual(decision["confidence"], 0.95)
+        self.assertEqual(decision["reasons"], ["Risk score is 70 or higher."])
+
+    def test_multiple_simultaneous_reject_reasons(self):
+        decision = make_ai_decision(
+            {"confidence": 0.55},
+            {"damaged_packaging": True, "tampered_seal": True, "unclear_expiry": True},
+            {"risk_score": 88},
+        )
+
+        self.assertEqual(decision["decision"], "reject")
+        self.assertEqual(decision["confidence"], 0.95)
+        self.assertEqual(
+            decision["reasons"],
+            [
+                "Risk score is 70 or higher.",
+                "Tampered seal was detected.",
+                "Damaged packaging was detected.",
+            ],
+        )
 
 
 class GeminiOcrFoundationTests(TestCase):
