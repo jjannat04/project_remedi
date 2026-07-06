@@ -6,6 +6,7 @@ from django.conf import settings
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+import base64
 from decimal import Decimal
 import shutil
 import tempfile
@@ -34,6 +35,7 @@ from .services.demo_data import (
 from .services.explanation import build_explanation
 from .services.fallback import get_ocr_fallback_result
 from .services.pipeline import evaluate_donation
+from .services.qr import generate_qr_identifier, lookup_qr, qr_payload, render_qr_data_uri
 from .services.safety import analyze_image_safety, calculate_donation_risk
 
 
@@ -834,6 +836,7 @@ class PharmacistReviewWorkflowTests(TestCase):
         self.settings_override.enable()
         self.donor = User.objects.create_user(
             username="review_donor",
+            email="review-donor@example.com",
             password="pass12345",
             role=User.Role.DONOR,
         )
@@ -1086,6 +1089,98 @@ class PharmacistReviewWorkflowTests(TestCase):
         self.medicine.refresh_from_db()
         self.assertEqual(self.medicine.status, "verified")
         self.assertEqual(self.medicine.rejection_reason, "")
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_qr_id_generated_after_approval(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result()
+        self.client.force_login(self.pharmacist)
+
+        response = self.client.post(self.review_url(), {"action": "approve"})
+
+        self.medicine.refresh_from_db()
+        self.assertRegex(self.medicine.qr_code_id, r"^RMD-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}$")
+        self.assertIsNotNone(self.medicine.qr_generated_at)
+        self.assertContains(response, "QR Generated Successfully")
+        self.assertContains(response, self.medicine.qr_code_id)
+
+    def test_qr_ids_are_unique(self):
+        qr_ids = {generate_qr_identifier() for _ in range(100)}
+
+        self.assertEqual(len(qr_ids), 100)
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_qr_contains_only_qr_id(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result()
+        self.client.force_login(self.pharmacist)
+        self.client.post(self.review_url(), {"action": "approve"})
+        self.medicine.refresh_from_db()
+
+        payload = qr_payload(self.medicine.qr_code_id)
+
+        self.assertEqual(payload, self.medicine.qr_code_id)
+        self.assertNotIn(str(self.donor.id), payload)
+        self.assertNotIn(self.donor.username, payload)
+        self.assertNotIn(self.donor.email, payload)
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_qr_lookup_returns_correct_medicine(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result()
+        self.client.force_login(self.pharmacist)
+        self.client.post(self.review_url(), {"action": "approve"})
+        self.medicine.refresh_from_db()
+
+        result = lookup_qr(self.medicine.qr_code_id)
+
+        self.assertEqual(result["medicine"], self.medicine)
+        self.assertEqual(result["donation"], self.medicine)
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_qr_lookup_returns_correct_donor(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result()
+        self.client.force_login(self.pharmacist)
+        self.client.post(self.review_url(), {"action": "approve"})
+        self.medicine.refresh_from_db()
+
+        result = lookup_qr(self.medicine.qr_code_id)
+
+        self.assertEqual(result["donor"], self.donor)
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_public_qr_contains_no_donor_information(self, mock_evaluate):
+        self.donor.email = "private-donor@example.com"
+        self.donor.save()
+        mock_evaluate.return_value = self.evaluation_result()
+        self.client.force_login(self.pharmacist)
+        self.client.post(self.review_url(), {"action": "approve"})
+        self.medicine.refresh_from_db()
+
+        payload = qr_payload(self.medicine.qr_code_id)
+
+        self.assertNotIn("review_donor", payload)
+        self.assertNotIn("private-donor@example.com", payload)
+        self.assertNotIn("Review Medicine", payload)
+        self.assertNotIn("REVIEW-001", payload)
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_printable_qr_is_generated(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result()
+        self.client.force_login(self.pharmacist)
+        response = self.client.post(self.review_url(), {"action": "approve"})
+        self.medicine.refresh_from_db()
+
+        qr_image = render_qr_data_uri(self.medicine.qr_code_id)
+        png_bytes = base64.b64decode(qr_image.split(",", 1)[1])
+
+        self.assertTrue(qr_image.startswith("data:image/png;base64,"))
+        self.assertTrue(png_bytes.startswith(b"\x89PNG"))
+        self.assertContains(response, "Download QR")
+        self.assertContains(response, f'download="remedi-{self.medicine.qr_code_id}.png"')
 
 
 class MedicineImageUploadTests(TestCase):

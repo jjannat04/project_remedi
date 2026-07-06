@@ -50,6 +50,8 @@ class Medicine(models.Model):
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     qr_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    qr_code_id = models.CharField(max_length=20, unique=True, null=True, blank=True, db_index=True)
+    qr_generated_at = models.DateTimeField(null=True, blank=True)
     patient = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='purchases')
     ordered_at = models.DateTimeField(null=True, blank=True)
 

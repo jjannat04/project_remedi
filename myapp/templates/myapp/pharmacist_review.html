@@ -15,6 +15,23 @@
         </div>
         {% endif %}
 
+        {% if medicine.qr_code_id %}
+        <section class="rounded-xl border border-emerald-200 bg-white p-5">
+            <h2 class="text-lg font-black text-emerald-800 mb-1">QR Generated Successfully</h2>
+            <div id="qr-print-content">
+                {% if qr_image_data_uri %}
+                <img src="{{ qr_image_data_uri }}" alt="Traceability QR code {{ medicine.qr_code_id }}" class="w-48 h-48 border border-slate-200 rounded-lg bg-white p-2">
+                {% endif %}
+                <p class="qr-id text-sm text-slate-600 mt-3"><span class="font-bold">QR ID:</span> {{ medicine.qr_code_id }}</p>
+            </div>
+            {% if qr_image_data_uri %}
+            <a href="{{ qr_image_data_uri }}" download="remedi-{{ medicine.qr_code_id }}.png" class="inline-block mt-4 px-5 py-2 text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg">
+                Download QR
+            </a>
+            {% endif %}
+        </section>
+        {% endif %}
+
         {% if is_reviewed %}
         <div class="rounded-xl border {% if medicine.status == 'verified' or medicine.status == 'sold' %}border-emerald-200 bg-emerald-50 text-emerald-800{% else %}border-red-200 bg-red-50 text-red-800{% endif %} p-4 text-sm font-bold">
             {% if medicine.status == 'verified' or medicine.status == 'sold' %}

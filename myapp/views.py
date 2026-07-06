@@ -17,6 +17,7 @@ from .services.demo_data import ensure_demo_user
 from .services.explanation import build_explanation
 from .services.image_processing import compress_uploaded_image
 from .services.pipeline import evaluate_donation
+from .services.qr import ensure_medicine_qr, render_qr_data_uri
 
 
 def hackathon_media_serve(request, path):
@@ -171,6 +172,7 @@ def pharmacist_review(request, med_id):
     rejection_error = None
     reviewed_at = medicine.verified_at or medicine.rejected_at
     is_reviewed = medicine.status in {'verified', 'rejected', 'sold'}
+    qr_image_data_uri = None
 
     if medicine.medicine_image:
         evaluation = evaluate_donation(medicine.medicine_image)
@@ -187,6 +189,7 @@ def pharmacist_review(request, med_id):
             medicine.rejected_at = None
             medicine.rejection_reason = ''
             medicine.save()
+            ensure_medicine_qr(medicine)
             reviewed_at = medicine.verified_at
             is_reviewed = True
             success_message = "Medicine verified successfully."
@@ -203,6 +206,9 @@ def pharmacist_review(request, med_id):
             else:
                 rejection_error = "Reason for rejection is required."
 
+    if medicine.qr_code_id:
+        qr_image_data_uri = render_qr_data_uri(medicine.qr_code_id)
+
     return render(request, 'myapp/pharmacist_review.html', {
         'medicine': medicine,
         'evaluation': evaluation,
@@ -211,6 +217,7 @@ def pharmacist_review(request, med_id):
         'rejection_error': rejection_error,
         'is_reviewed': is_reviewed,
         'reviewed_at': reviewed_at,
+        'qr_image_data_uri': qr_image_data_uri,
     })
 
 
@@ -235,12 +242,13 @@ def verify_medicine(request, med_id):
             medicine.verified_at = timezone.now()
             medicine.rejection_reason = ''
             medicine.rejected_at = None
+            medicine.save()
+            ensure_medicine_qr(medicine)
         elif action == 'reject':
             medicine.status = 'rejected'
             medicine.rejected_at = timezone.now()
             medicine.rejection_reason = request.POST.get('rejection_reason') or 'Rejected during pharmacist review.'
-        
-        medicine.save()
+            medicine.save()
     
     # 4. Redirect back to the queue (the page you were just on)
     return redirect('pharmacist_queue')
