@@ -11,7 +11,7 @@ import shutil
 import tempfile
 from io import BytesIO
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, call, patch
 
 from .models import Medicine, User
 from .services.ai import (
@@ -32,6 +32,7 @@ from .services.demo_data import (
     DEMO_PHARMACIST_EMAIL,
 )
 from .services.fallback import get_ocr_fallback_result
+from .services.pipeline import evaluate_donation
 from .services.safety import analyze_image_safety, calculate_donation_risk
 
 
@@ -329,6 +330,99 @@ class DonationDecisionTests(TestCase):
         )
 
 
+class DonationEvaluationPipelineTests(TestCase):
+    def pipeline_results(self, ocr_result, safety_result, risk_result, decision_result):
+        image_file = fake_image_file()
+
+        with patch("myapp.services.pipeline.analyze_medicine_image", return_value=ocr_result) as mock_ocr:
+            with patch("myapp.services.pipeline.analyze_image_safety", return_value=safety_result) as mock_safety:
+                with patch("myapp.services.pipeline.calculate_donation_risk", return_value=risk_result) as mock_risk:
+                    with patch("myapp.services.pipeline.make_ai_decision", return_value=decision_result) as mock_decision:
+                        call_order = Mock()
+                        call_order.attach_mock(mock_ocr, "ocr")
+                        call_order.attach_mock(mock_safety, "safety")
+                        call_order.attach_mock(mock_risk, "risk")
+                        call_order.attach_mock(mock_decision, "decision")
+
+                        result = evaluate_donation(image_file)
+
+        mock_ocr.assert_called_once_with(image_file)
+        mock_safety.assert_called_once_with(image_file, ocr_result)
+        mock_risk.assert_called_once_with(ocr_result, safety_result)
+        mock_decision.assert_called_once_with(ocr_result, safety_result, risk_result)
+        self.assertEqual(
+            call_order.mock_calls,
+            [
+                call.ocr(image_file),
+                call.safety(image_file, ocr_result),
+                call.risk(ocr_result, safety_result),
+                call.decision(ocr_result, safety_result, risk_result),
+            ],
+        )
+        return result
+
+    def test_successful_pipeline_returns_all_sections(self):
+        ocr_result = {"source": "gemini", "confidence": 0.91}
+        safety_result = {"tampered_seal": False, "unclear_expiry": False}
+        risk_result = {"risk_score": 0, "risk_level": "Low", "reasons": []}
+        decision_result = {"decision": "accept", "confidence": 0.90, "reasons": ["Accepted."]}
+
+        result = self.pipeline_results(ocr_result, safety_result, risk_result, decision_result)
+
+        self.assertEqual(result["ocr"], ocr_result)
+        self.assertEqual(result["safety"], safety_result)
+        self.assertEqual(result["risk"], risk_result)
+        self.assertEqual(result["decision"], decision_result)
+
+    def test_ocr_space_result_continues_to_risk_and_decision(self):
+        ocr_result = {"source": "ocr_space", "confidence": 0.82}
+        safety_result = {"tampered_seal": False, "unclear_expiry": False}
+        risk_result = {"risk_score": 20, "risk_level": "Low", "reasons": []}
+        decision_result = {"decision": "accept", "confidence": 0.90, "reasons": ["Accepted."]}
+
+        result = self.pipeline_results(ocr_result, safety_result, risk_result, decision_result)
+
+        self.assertEqual(result["ocr"]["source"], "ocr_space")
+        self.assertEqual(result["risk"], risk_result)
+        self.assertEqual(result["decision"], decision_result)
+
+    def test_deterministic_fallback_result_continues_to_risk_and_decision(self):
+        ocr_result = {"source": "fallback", "used_fallback": True, "confidence": 0.0}
+        safety_result = {"tampered_seal": False, "unclear_expiry": True}
+        risk_result = {"risk_score": 70, "risk_level": "High", "reasons": ["Expiry is unclear or missing."]}
+        decision_result = {"decision": "reject", "confidence": 0.95, "reasons": ["Risk score is 70 or higher."]}
+
+        result = self.pipeline_results(ocr_result, safety_result, risk_result, decision_result)
+
+        self.assertEqual(result["ocr"]["source"], "fallback")
+        self.assertEqual(result["risk"], risk_result)
+        self.assertEqual(result["decision"], decision_result)
+
+    def test_high_risk_pipeline_decision_is_reject(self):
+        result = self.pipeline_results(
+            {"source": "gemini", "confidence": 0.51},
+            {"tampered_seal": True, "unclear_expiry": True},
+            {"risk_score": 100, "risk_level": "High", "reasons": ["Tampering or seal issue detected."]},
+            {"decision": "reject", "confidence": 0.95, "reasons": ["Tampered seal was detected."]},
+        )
+
+        self.assertEqual(result["decision"]["decision"], "reject")
+
+    def test_good_pipeline_decision_is_accept(self):
+        result = self.pipeline_results(
+            {"source": "gemini", "confidence": 0.95},
+            {"tampered_seal": False, "unclear_expiry": False},
+            {"risk_score": 0, "risk_level": "Low", "reasons": []},
+            {
+                "decision": "accept",
+                "confidence": 0.90,
+                "reasons": ["Risk is low, no safety issues were detected, and OCR confidence is acceptable."],
+            },
+        )
+
+        self.assertEqual(result["decision"]["decision"], "accept")
+
+
 class GeminiOcrFoundationTests(TestCase):
     def setUp(self):
         cache.clear()
@@ -505,18 +599,121 @@ class GeminiOcrFoundationTests(TestCase):
 
         self.assertEqual(response.status_code, 404)
 
-    @override_settings(DEMO_MODE=True, GEMINI_API_KEY="", OCR_SPACE_ENABLED=False, OCR_SPACE_API_KEY="")
-    def test_ocr_page_works_in_demo_mode(self):
-        with self.assertLogs("myapp.services.ai", level="WARNING"):
-            response = self.client.post(
-                reverse("judge_ocr"),
-                {"medicine_image": fake_image_file()},
-            )
+class JudgeOcrPipelinePageTests(TestCase):
+    def evaluation_result(self, source="gemini", decision="accept", risk_score=0, risk_level="Low"):
+        return {
+            "ocr": {
+                "medicine_name": "Napa",
+                "scientific_name": "Paracetamol",
+                "dosage": "500 mg",
+                "manufacturer": "Beximco",
+                "batch_number": "A1",
+                "expiry_text": "EXP 12/2028",
+                "confidence": 0.91,
+                "source": source,
+            },
+            "safety": {
+                "damaged_packaging": False,
+                "tampered_seal": decision == "reject",
+                "unclear_expiry": decision == "reject",
+                "suspicious_condition": False,
+                "low_image_quality": False,
+            },
+            "risk": {
+                "risk_score": risk_score,
+                "risk_level": risk_level,
+                "reasons": [] if risk_score == 0 else ["Risk score is 70 or higher."],
+            },
+            "decision": {
+                "decision": decision,
+                "confidence": 0.90 if decision == "accept" else 0.95,
+                "reasons": [
+                    "Risk is low, no safety issues were detected, and OCR confidence is acceptable."
+                    if decision == "accept"
+                    else "Tampered seal was detected."
+                ],
+            },
+        }
+
+    @override_settings(DEMO_MODE=True)
+    def test_get_page_loads_upload_form_only(self):
+        response = self.client.get(reverse("judge_ocr"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Extracted JSON")
+        self.assertContains(response, "Medicine OCR Test")
+        self.assertContains(response, "Medicine package image")
+        self.assertNotContains(response, "Risk Assessment")
+        self.assertIsNone(response.context["evaluation"])
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_post_valid_image_calls_pipeline_once(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result()
+
+        response = self.client.post(reverse("judge_ocr"), {"medicine_image": fake_image_file()})
+
+        self.assertEqual(response.status_code, 200)
+        mock_evaluate.assert_called_once()
+        self.assertEqual(mock_evaluate.call_args.args[0].name, "package.jpg")
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_template_receives_evaluation(self, mock_evaluate):
+        evaluation = self.evaluation_result()
+        mock_evaluate.return_value = evaluation
+
+        response = self.client.post(reverse("judge_ocr"), {"medicine_image": fake_image_file()})
+
+        self.assertEqual(response.context["evaluation"], evaluation)
+        self.assertContains(response, "OCR")
+        self.assertContains(response, "Safety Screening")
+        self.assertContains(response, "Risk Assessment")
+        self.assertContains(response, "AI Decision")
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_fallback_result_renders_correctly(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result(
+            source="fallback",
+            decision="reject",
+            risk_score=70,
+            risk_level="High",
+        )
+
+        response = self.client.post(reverse("judge_ocr"), {"medicine_image": fake_image_file()})
+
         self.assertContains(response, "fallback")
-        self.assertContains(response, MISSING_API_KEY_MESSAGE)
+        self.assertContains(response, "Risk score is 70 or higher.")
+        self.assertContains(response, "Reject")
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_high_risk_reject_renders_correctly(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result(
+            source="gemini",
+            decision="reject",
+            risk_score=100,
+            risk_level="High",
+        )
+
+        response = self.client.post(reverse("judge_ocr"), {"medicine_image": fake_image_file()})
+
+        self.assertContains(response, "High")
+        self.assertContains(response, "Reject")
+        self.assertContains(response, "text-red-700")
+        self.assertContains(response, "✓ Yes")
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_accept_renders_correctly(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result()
+
+        response = self.client.post(reverse("judge_ocr"), {"medicine_image": fake_image_file()})
+
+        self.assertContains(response, "Low")
+        self.assertContains(response, "Accept")
+        self.assertContains(response, "text-emerald-700")
+        self.assertContains(response, "✗ No")
 
 
 class MedicineImageUploadTests(TestCase):

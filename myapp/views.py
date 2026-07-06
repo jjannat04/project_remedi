@@ -1,7 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Medicine, ReMediCorner
 from django.db.models import Sum
-import json
 from pathlib import Path
 import mimetypes
 from django.contrib.auth import login
@@ -14,9 +13,9 @@ from django.conf import settings
 from django.http import FileResponse, Http404, HttpResponseForbidden
 
 from .services.analytics import calculate_demo_analytics, calculate_medicine_analytics, demo_medicine_queryset
-from .services.ai import analyze_medicine_image
 from .services.demo_data import ensure_demo_user
 from .services.image_processing import compress_uploaded_image
+from .services.pipeline import evaluate_donation
 
 
 def hackathon_media_serve(request, path):
@@ -64,17 +63,14 @@ def judge_ocr(request):
     if not settings.DEMO_MODE:
         raise Http404()
 
-    result = None
-    result_json = None
+    evaluation = None
     if request.method == 'POST':
         image_file = request.FILES.get('medicine_image')
         if image_file:
-            result = analyze_medicine_image(image_file)
-            result_json = json.dumps(result, indent=2)
+            evaluation = evaluate_donation(image_file)
 
     return render(request, 'myapp/judge_ocr.html', {
-        'result': result,
-        'result_json': result_json,
+        'evaluation': evaluation,
     })
 
 
