@@ -49,11 +49,24 @@
                         {% for med in pending_medicines %}
                         <tr class="hover:bg-slate-50/50 transition-colors">
                             <td class="px-6 py-5">
-                                <p class="font-bold text-slate-800">{{ med.name }}</p>
-                                {% if med.scientific_name %}
-                                <p class="text-xs text-slate-500">{{ med.scientific_name }}{% if med.category %} · {{ med.category }}{% endif %}</p>
-                                {% endif %}
-                                <p class="text-xs text-slate-400 font-mono">Expires: {{ med.expiry_date }}</p>
+                                <div class="flex items-center gap-4">
+                                    <div class="w-16 h-16 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+                                        {% if med.medicine_image %}
+                                        <a href="{{ med.medicine_image.url }}" target="_blank" rel="noopener" class="block w-full h-full">
+                                            <img src="{{ med.medicine_image.url }}" alt="{{ med.name }} package" class="w-full h-full object-cover">
+                                        </a>
+                                        {% else %}
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase text-center px-2">No Image</span>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-slate-800">{{ med.name }}</p>
+                                        {% if med.scientific_name %}
+                                        <p class="text-xs text-slate-500">{{ med.scientific_name }}{% if med.category %} · {{ med.category }}{% endif %}</p>
+                                        {% endif %}
+                                        <p class="text-xs text-slate-400 font-mono">Expires: {{ med.expiry_date }}</p>
+                                    </div>
+                                </div>
                             </td>
                             <td class="px-6 py-5 text-sm text-slate-600">
                                 {{ med.donor.username }}

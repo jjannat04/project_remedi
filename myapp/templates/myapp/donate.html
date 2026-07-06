@@ -33,7 +33,7 @@
 
                 <!-- Right Side: The Form -->
                 <div class="md:w-2/3 p-8 lg:p-12">
-                    <form method="post" class="space-y-6">
+                    <form method="post" enctype="multipart/form-data" class="space-y-6">
                         {% csrf_token %}
                         
                         {% for field in form %}
@@ -75,6 +75,10 @@
         border-color: #059669; /* emerald-600 */
         box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
         background-color: white;
+    }
+    input[type="file"] {
+        padding: 0.6rem;
+        cursor: pointer;
     }
 </style>
 {% endblock %}
