@@ -18,9 +18,34 @@ def env_bool(name, default=False):
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def env_int(name, default=0):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
 # SECURITY
-SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key")
+SECRET_KEY = os.environ.get(
+    "SECRET_KEY",
+    "dev-only-remedi-secret-key-change-this-before-production-2026",
+)
 DEBUG = env_bool("DEBUG", False)
+PRODUCTION_SECURITY = (
+    env_bool("PRODUCTION", False)
+    or env_bool("RENDER", False)
+    or bool(os.environ.get("RENDER_EXTERNAL_HOSTNAME"))
+)
+SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", PRODUCTION_SECURITY)
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", PRODUCTION_SECURITY)
+CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", PRODUCTION_SECURITY)
+SECURE_HSTS_SECONDS = env_int("SECURE_HSTS_SECONDS", 31536000 if PRODUCTION_SECURITY else 0)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", PRODUCTION_SECURITY)
+SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", PRODUCTION_SECURITY)
 
 DEMO_MODE = env_bool("DEMO_MODE", False)
 AI_FALLBACK_ENABLED = env_bool("AI_FALLBACK_ENABLED", True)
@@ -134,7 +159,7 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 
 STATICFILES_STORAGE = "whitenoise.storage.StaticFilesStorage"
-# ✅ FIXED WHITE NOISE CONFIG (IMPORTANT)
+# Fixed WhiteNoise config.
 # Avoid CompressedManifestStaticFilesStorage (causes missing file crash on Render)
 STORAGES = {
     "default": {
