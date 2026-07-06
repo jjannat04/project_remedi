@@ -31,6 +31,7 @@ from .services.demo_data import (
     DEMO_PATIENT_EMAIL,
     DEMO_PHARMACIST_EMAIL,
 )
+from .services.explanation import build_explanation
 from .services.fallback import get_ocr_fallback_result
 from .services.pipeline import evaluate_donation
 from .services.safety import analyze_image_safety, calculate_donation_risk
@@ -423,6 +424,110 @@ class DonationEvaluationPipelineTests(TestCase):
         self.assertEqual(result["decision"]["decision"], "accept")
 
 
+class DonationExplanationTests(TestCase):
+    def evaluation_result(self, decision="accept", risk_score=0, risk_level="Low", **overrides):
+        evaluation = {
+            "ocr": {
+                "medicine_name": "Napa",
+                "scientific_name": "Paracetamol",
+                "dosage": "500 mg",
+                "manufacturer": "Beximco",
+                "batch_number": "A1",
+                "expiry_text": "EXP 12/2028",
+                "confidence": 0.91,
+                "source": "gemini",
+            },
+            "safety": {
+                "damaged_packaging": False,
+                "tampered_seal": False,
+                "unclear_expiry": False,
+                "suspicious_condition": False,
+                "low_image_quality": False,
+            },
+            "risk": {
+                "risk_score": risk_score,
+                "risk_level": risk_level,
+                "reasons": [],
+            },
+            "decision": {
+                "decision": decision,
+                "confidence": 0.90,
+                "reasons": ["Risk is low, no safety issues were detected, and OCR confidence is acceptable."],
+            },
+        }
+        for section, values in overrides.items():
+            evaluation[section].update(values)
+        return evaluation
+
+    def test_accept_explanation(self):
+        explanation = build_explanation(self.evaluation_result())
+
+        self.assertEqual(explanation["title"], "Medicine appears suitable for donation")
+        self.assertIn("recommendation is accept", explanation["summary"])
+
+    def test_review_explanation(self):
+        explanation = build_explanation(
+            self.evaluation_result(
+                decision="review",
+                risk_score=40,
+                risk_level="Medium",
+                ocr={"confidence": 0.65},
+            )
+        )
+
+        self.assertEqual(explanation["title"], "Manual review recommended")
+        self.assertIn("OCR confidence is low", explanation["negative_points"])
+
+    def test_reject_explanation(self):
+        explanation = build_explanation(
+            self.evaluation_result(
+                decision="reject",
+                risk_score=100,
+                risk_level="High",
+                safety={"tampered_seal": True},
+            )
+        )
+
+        self.assertEqual(explanation["title"], "Medicine should not be donated")
+        self.assertIn("Tampered seal detected", explanation["negative_points"])
+
+    def test_positive_list(self):
+        explanation = build_explanation(self.evaluation_result())
+
+        self.assertIn("Medicine identified successfully", explanation["positive_points"])
+        self.assertIn("Packaging appears intact", explanation["positive_points"])
+        self.assertIn("Expiry information detected", explanation["positive_points"])
+        self.assertIn("OCR confidence is high", explanation["positive_points"])
+
+    def test_negative_list(self):
+        explanation = build_explanation(
+            self.evaluation_result(
+                risk_score=70,
+                risk_level="High",
+                ocr={"batch_number": "", "expiry_text": "", "confidence": 0.4},
+                safety={
+                    "damaged_packaging": True,
+                    "tampered_seal": True,
+                    "unclear_expiry": True,
+                    "suspicious_condition": True,
+                    "low_image_quality": True,
+                },
+            )
+        )
+
+        self.assertIn("Low image quality detected", explanation["negative_points"])
+        self.assertIn("Batch number missing", explanation["negative_points"])
+        self.assertIn("Tampered seal detected", explanation["negative_points"])
+        self.assertIn("Risk score is high", explanation["negative_points"])
+
+    def test_summary_generation(self):
+        explanation = build_explanation(self.evaluation_result())
+
+        self.assertLessEqual(len(explanation["summary"].split()), 80)
+        self.assertIn("successfully identified", explanation["summary"])
+        self.assertIn("risk score is low", explanation["summary"])
+
+
 class GeminiOcrFoundationTests(TestCase):
     def setUp(self):
         cache.clear()
@@ -665,10 +770,13 @@ class JudgeOcrPipelinePageTests(TestCase):
         response = self.client.post(reverse("judge_ocr"), {"medicine_image": fake_image_file()})
 
         self.assertEqual(response.context["evaluation"], evaluation)
+        self.assertEqual(response.context["explanation"]["title"], "Medicine appears suitable for donation")
         self.assertContains(response, "OCR")
         self.assertContains(response, "Safety Screening")
         self.assertContains(response, "Risk Assessment")
         self.assertContains(response, "AI Decision")
+        self.assertContains(response, "Explanation")
+        self.assertContains(response, "Medicine appears suitable for donation")
 
     @override_settings(DEMO_MODE=True)
     @patch("myapp.views.evaluate_donation")
@@ -685,6 +793,7 @@ class JudgeOcrPipelinePageTests(TestCase):
         self.assertContains(response, "fallback")
         self.assertContains(response, "Risk score is 70 or higher.")
         self.assertContains(response, "Reject")
+        self.assertContains(response, "Medicine should not be donated")
 
     @override_settings(DEMO_MODE=True)
     @patch("myapp.views.evaluate_donation")
@@ -702,6 +811,7 @@ class JudgeOcrPipelinePageTests(TestCase):
         self.assertContains(response, "Reject")
         self.assertContains(response, "text-red-700")
         self.assertContains(response, "✓ Yes")
+        self.assertContains(response, "Tampered seal detected")
 
     @override_settings(DEMO_MODE=True)
     @patch("myapp.views.evaluate_donation")
@@ -714,6 +824,179 @@ class JudgeOcrPipelinePageTests(TestCase):
         self.assertContains(response, "Accept")
         self.assertContains(response, "text-emerald-700")
         self.assertContains(response, "✗ No")
+        self.assertContains(response, "Packaging appears intact")
+
+
+class PharmacistReviewWorkflowTests(TestCase):
+    def setUp(self):
+        self.media_root = tempfile.mkdtemp()
+        self.settings_override = override_settings(MEDIA_ROOT=self.media_root)
+        self.settings_override.enable()
+        self.donor = User.objects.create_user(
+            username="review_donor",
+            password="pass12345",
+            role=User.Role.DONOR,
+        )
+        self.pharmacist = User.objects.create_user(
+            username="review_pharmacist",
+            password="pass12345",
+            role=User.Role.PHARMACIST,
+            is_active=True,
+        )
+        self.medicine = Medicine.objects.create(
+            donor=self.donor,
+            name="Review Medicine",
+            scientific_name="Review Scientific",
+            batch_number="REVIEW-001",
+            expiry_date="2028-05-20",
+            original_price=Decimal("500.00"),
+            status="pending",
+            medicine_image=create_test_image("review-package.png", size=(900, 900)),
+        )
+
+    def tearDown(self):
+        self.settings_override.disable()
+        shutil.rmtree(self.media_root, ignore_errors=True)
+
+    def evaluation_result(self, decision="accept", risk_score=0, risk_level="Low"):
+        return {
+            "ocr": {
+                "medicine_name": "AI Review Medicine",
+                "scientific_name": "AI Scientific",
+                "dosage": "500 mg",
+                "manufacturer": "Beximco",
+                "batch_number": "AI-BATCH-1",
+                "expiry_text": "EXP 12/2028",
+                "confidence": 0.91 if decision == "accept" else 0.55,
+                "source": "gemini",
+            },
+            "safety": {
+                "damaged_packaging": False,
+                "tampered_seal": decision == "reject",
+                "unclear_expiry": decision == "reject",
+                "suspicious_condition": False,
+                "low_image_quality": False,
+            },
+            "risk": {
+                "risk_score": risk_score,
+                "risk_level": risk_level,
+                "reasons": [] if risk_score == 0 else ["Risk score is 70 or higher."],
+            },
+            "decision": {
+                "decision": decision,
+                "confidence": 0.90 if decision == "accept" else 0.95,
+                "reasons": [
+                    "Risk is low, no safety issues were detected, and OCR confidence is acceptable."
+                    if decision == "accept"
+                    else "Tampered seal was detected."
+                ],
+            },
+        }
+
+    def review_url(self):
+        return reverse("pharmacist_review", args=[self.medicine.id])
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_pharmacist_review_page_loads(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result()
+        self.client.force_login(self.pharmacist)
+
+        response = self.client.get(self.review_url())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Pharmacist Review")
+        self.assertContains(response, "Medicine Image")
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_existing_ai_evaluation_renders(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result()
+        self.client.force_login(self.pharmacist)
+
+        response = self.client.get(self.review_url())
+
+        self.assertContains(response, "AI Review Medicine")
+        self.assertContains(response, "AI Recommendation")
+        self.assertContains(response, "Risk Score")
+        self.assertContains(response, "Explanation Summary")
+        self.assertContains(response, "Positive Findings")
+        self.assertContains(response, "Negative Findings")
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_approve_action_succeeds_without_saving(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result()
+        self.client.force_login(self.pharmacist)
+
+        response = self.client.post(self.review_url(), {"action": "approve"})
+
+        self.assertContains(response, "Medicine approved successfully.")
+        self.medicine.refresh_from_db()
+        self.assertEqual(self.medicine.status, "pending")
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_reject_action_succeeds_with_reason_without_saving(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result(decision="reject", risk_score=100, risk_level="High")
+        self.client.force_login(self.pharmacist)
+
+        response = self.client.post(self.review_url(), {
+            "action": "reject",
+            "rejection_reason": "Seal appears opened.",
+        })
+
+        self.assertContains(response, "Medicine rejected successfully.")
+        self.medicine.refresh_from_db()
+        self.assertEqual(self.medicine.status, "pending")
+        self.assertEqual(self.medicine.rejection_reason, "")
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_reject_requires_reason(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result(decision="reject", risk_score=100, risk_level="High")
+        self.client.force_login(self.pharmacist)
+
+        response = self.client.post(self.review_url(), {"action": "reject", "rejection_reason": ""})
+
+        self.assertContains(response, "Reason for rejection is required.")
+        self.assertNotContains(response, "Medicine rejected successfully.")
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_ai_recommendation_is_displayed(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result(decision="reject", risk_score=100, risk_level="High")
+        self.client.force_login(self.pharmacist)
+
+        response = self.client.get(self.review_url())
+
+        self.assertContains(response, "AI Recommendation")
+        self.assertContains(response, "Reject")
+        self.assertContains(response, "AI Confidence")
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_human_decision_panel_is_displayed(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result()
+        self.client.force_login(self.pharmacist)
+
+        response = self.client.get(self.review_url())
+
+        self.assertContains(response, "Human Decision")
+        self.assertContains(response, "Approve")
+        self.assertContains(response, "Reject")
+        self.assertContains(response, "Reason for rejection")
+
+    @override_settings(DEMO_MODE=True)
+    @patch("myapp.views.evaluate_donation")
+    def test_ai_assists_pharmacist_decides_message_is_rendered(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result()
+        self.client.force_login(self.pharmacist)
+
+        response = self.client.get(self.review_url())
+
+        self.assertContains(response, "AI assists. Pharmacist decides.")
+        self.assertContains(response, "AI provides recommendations. The pharmacist makes the final decision.")
 
 
 class MedicineImageUploadTests(TestCase):

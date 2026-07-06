@@ -14,6 +14,7 @@ from django.http import FileResponse, Http404, HttpResponseForbidden
 
 from .services.analytics import calculate_demo_analytics, calculate_medicine_analytics, demo_medicine_queryset
 from .services.demo_data import ensure_demo_user
+from .services.explanation import build_explanation
 from .services.image_processing import compress_uploaded_image
 from .services.pipeline import evaluate_donation
 
@@ -64,13 +65,16 @@ def judge_ocr(request):
         raise Http404()
 
     evaluation = None
+    explanation = None
     if request.method == 'POST':
         image_file = request.FILES.get('medicine_image')
         if image_file:
             evaluation = evaluate_donation(image_file)
+            explanation = build_explanation(evaluation)
 
     return render(request, 'myapp/judge_ocr.html', {
         'evaluation': evaluation,
+        'explanation': explanation,
     })
 
 
@@ -152,6 +156,43 @@ def pharmacist_queue(request):
     if settings.DEMO_MODE:
         context['demo_analytics'] = calculate_demo_analytics()
     return render(request, 'myapp/verify_form.html', context)
+
+
+@login_required
+def pharmacist_review(request, med_id):
+    """Temporary pharmacist review workflow; final persistence comes later."""
+    if request.user.role != User.Role.PHARMACIST or not request.user.is_active:
+        return HttpResponseForbidden("Your pharmacist account is either not verified or you don't have permission.")
+
+    medicine = get_object_or_404(Medicine, id=med_id, status='pending')
+    evaluation = None
+    explanation = None
+    success_message = None
+    rejection_error = None
+
+    if medicine.medicine_image:
+        evaluation = evaluate_donation(medicine.medicine_image)
+        explanation = build_explanation(evaluation)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'approve':
+            success_message = "Medicine approved successfully."
+        elif action == 'reject':
+            rejection_reason = (request.POST.get('rejection_reason') or '').strip()
+            if rejection_reason:
+                success_message = "Medicine rejected successfully."
+            else:
+                rejection_error = "Reason for rejection is required."
+
+    return render(request, 'myapp/pharmacist_review.html', {
+        'medicine': medicine,
+        'evaluation': evaluation,
+        'explanation': explanation,
+        'success_message': success_message,
+        'rejection_error': rejection_error,
+    })
+
 
 @login_required
 def verify_medicine(request, med_id):

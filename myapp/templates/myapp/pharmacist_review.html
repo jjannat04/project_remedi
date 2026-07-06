@@ -1,0 +1,137 @@
+{% extends 'myapp/base.html' %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 py-10 px-4">
+    <main class="max-w-5xl mx-auto space-y-6">
+        <div>
+            <a href="{% url 'pharmacist_queue' %}" class="text-sm font-bold text-slate-500 hover:text-slate-800">Back to queue</a>
+            <h1 class="text-3xl font-black text-slate-900 mt-2">Pharmacist Review</h1>
+            <p class="text-slate-500 font-semibold">AI assists. Pharmacist decides.</p>
+        </div>
+
+        {% if success_message %}
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
+            {{ success_message }}
+        </div>
+        {% endif %}
+
+        <section class="rounded-xl border border-slate-200 bg-white p-5">
+            <h2 class="text-lg font-black text-slate-900 mb-4">Medicine Image</h2>
+            {% if medicine.medicine_image %}
+            <img src="{{ medicine.medicine_image.url }}" alt="{{ medicine.name }} package" class="max-h-80 rounded-lg border border-slate-200 object-contain">
+            {% else %}
+            <p class="text-sm text-slate-500 font-semibold">No image uploaded.</p>
+            {% endif %}
+        </section>
+
+        <section class="rounded-xl border border-slate-200 bg-white p-5">
+            <h2 class="text-lg font-black text-slate-900 mb-4">Medicine Information</h2>
+            <dl class="grid gap-2 text-sm text-slate-700">
+                <div class="flex justify-between gap-4"><dt class="font-bold">Medicine Name</dt><dd>{{ evaluation.ocr.medicine_name|default:medicine.name }}</dd></div>
+                <div class="flex justify-between gap-4"><dt class="font-bold">Scientific Name</dt><dd>{{ evaluation.ocr.scientific_name|default:medicine.scientific_name }}</dd></div>
+                <div class="flex justify-between gap-4"><dt class="font-bold">Dosage</dt><dd>{{ evaluation.ocr.dosage|default:"" }}</dd></div>
+                <div class="flex justify-between gap-4"><dt class="font-bold">Manufacturer</dt><dd>{{ evaluation.ocr.manufacturer|default:"" }}</dd></div>
+                <div class="flex justify-between gap-4"><dt class="font-bold">Batch Number</dt><dd>{{ evaluation.ocr.batch_number|default:medicine.batch_number }}</dd></div>
+                <div class="flex justify-between gap-4"><dt class="font-bold">Expiry</dt><dd>{{ evaluation.ocr.expiry_text|default:medicine.expiry_date }}</dd></div>
+            </dl>
+        </section>
+
+        <section class="rounded-xl border border-slate-300 bg-white p-5">
+            <h2 class="text-xl font-black text-slate-900 mb-1">AI Recommendation</h2>
+            <p class="text-sm text-slate-500 font-semibold mb-5">AI recommends. Human decides.</p>
+
+            {% if evaluation %}
+            <div class="grid gap-5">
+                <div class="rounded-lg border {% if evaluation.decision.decision == 'accept' %}border-emerald-200 bg-emerald-50{% elif evaluation.decision.decision == 'review' %}border-orange-200 bg-orange-50{% else %}border-red-200 bg-red-50{% endif %} p-4">
+                    <p class="text-sm font-bold text-slate-700">AI Recommendation</p>
+                    <p class="text-3xl font-black {% if evaluation.decision.decision == 'accept' %}text-emerald-700{% elif evaluation.decision.decision == 'review' %}text-orange-700{% else %}text-red-700{% endif %}">{{ evaluation.decision.decision|title }}</p>
+                    <p class="text-sm text-slate-700 mt-2"><span class="font-bold">AI Confidence:</span> {{ evaluation.decision.confidence }}</p>
+                </div>
+
+                <dl class="grid gap-2 text-sm text-slate-700">
+                    <div class="flex justify-between gap-4"><dt class="font-bold">Risk Score</dt><dd>{{ evaluation.risk.risk_score }}</dd></div>
+                    <div class="flex justify-between gap-4"><dt class="font-bold">Risk Level</dt><dd>{{ evaluation.risk.risk_level }}</dd></div>
+                </dl>
+
+                <div>
+                    <p class="text-sm font-bold text-slate-700 mb-2">Detected Findings</p>
+                    <ul class="list-disc pl-5 text-sm text-slate-700">
+                        {% for point in explanation.highlights %}
+                        <li>{{ point }}</li>
+                        {% empty %}
+                        <li>No findings detected.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div>
+                    <p class="text-sm font-bold text-slate-700 mb-2">Warnings</p>
+                    <ul class="list-disc pl-5 text-sm text-slate-700">
+                        {% for point in explanation.negative_points %}
+                        <li>{{ point }}</li>
+                        {% empty %}
+                        <li>No warnings detected.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div>
+                    <p class="text-sm font-bold text-slate-700 mb-2">Explanation Summary</p>
+                    <p class="text-sm text-slate-700">{{ explanation.summary }}</p>
+                </div>
+
+                <div>
+                    <p class="text-sm font-bold text-slate-700 mb-2">Positive Findings</p>
+                    <ul class="list-disc pl-5 text-sm text-slate-700">
+                        {% for point in explanation.positive_points %}
+                        <li>{{ point }}</li>
+                        {% empty %}
+                        <li>No positive findings detected.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div>
+                    <p class="text-sm font-bold text-slate-700 mb-2">Negative Findings</p>
+                    <ul class="list-disc pl-5 text-sm text-slate-700">
+                        {% for point in explanation.negative_points %}
+                        <li>{{ point }}</li>
+                        {% empty %}
+                        <li>No negative findings detected.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-sm text-slate-500 font-semibold">AI evaluation is unavailable because no medicine image was uploaded.</p>
+            {% endif %}
+        </section>
+
+        <section class="rounded-xl border-2 border-slate-900 bg-white p-5">
+            <h2 class="text-xl font-black text-slate-900 mb-4">Human Decision</h2>
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                <div class="flex flex-wrap gap-3">
+                    <button type="submit" name="action" value="approve" class="px-5 py-3 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg">
+                        Approve
+                    </button>
+                    <button type="submit" name="action" value="reject" class="px-5 py-3 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg">
+                        Reject
+                    </button>
+                </div>
+
+                <div>
+                    <label for="rejection_reason" class="block text-sm font-bold text-slate-700 mb-2">Reason for rejection</label>
+                    <textarea id="rejection_reason" name="rejection_reason" rows="3" class="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"></textarea>
+                    {% if rejection_error %}
+                    <p class="text-sm font-bold text-red-700 mt-2">{{ rejection_error }}</p>
+                    {% endif %}
+                </div>
+            </form>
+            <p class="mt-5 rounded-lg bg-slate-900 px-4 py-3 text-center text-sm font-black text-white">
+                AI provides recommendations. The pharmacist makes the final decision.
+            </p>
+        </section>
+    </main>
+</div>
+{% endblock %}

@@ -15,6 +15,7 @@ urlpatterns = [
     
     path('verify-queue/', views.verification_queue, name='verification_queue'),
     path('pharmacist/queue/', views.pharmacist_queue, name='pharmacist_queue'),
+    path('pharmacist/review/<int:med_id>/', views.pharmacist_review, name='pharmacist_review'),
     path('verify/<int:med_id>/', views.verify_medicine, name='verify_medicine'),
     path('map/', views.corner_map, name='corner_map'),
     path('donate/', views.donate_medicine, name='donate_medicine'),

@@ -72,16 +72,11 @@
                                 {{ med.donor.username }}
                             </td>
                             <td class="px-6 py-5">
-                                <!-- ONE FORM, TWO BUTTONS -->
-                                <form action="{% url 'verify_medicine' med.id %}" method="POST" class="flex justify-end gap-2">
-                                    {% csrf_token %}
-                                    <button type="submit" name="action" value="reject" class="px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl">
-                                        Reject
-                                    </button>
-                                    <button type="submit" name="action" value="verify" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-100">
-                                        Verify & List
-                                    </button>
-                                </form>
+                                <div class="flex justify-end">
+                                    <a href="{% url 'pharmacist_review' med.id %}" class="px-5 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl shadow-md shadow-slate-100">
+                                        Review AI
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
