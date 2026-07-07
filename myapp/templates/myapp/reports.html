@@ -1,0 +1,50 @@
+{% extends 'myapp/base.html' %}
+
+{% block content %}
+<main class="max-w-5xl mx-auto px-4 py-10">
+    <div class="print:hidden mb-8">
+        <p class="text-xs font-black uppercase tracking-widest text-emerald-600 mb-2">Impact Reports</p>
+        <h1 class="text-3xl font-black text-slate-900">AI Impact Reports</h1>
+        <p class="text-sm text-slate-500 mt-1">Deterministic, anonymized summaries generated from aggregate platform data.</p>
+    </div>
+
+    <form method="get" class="print:hidden bg-white border border-slate-200 rounded-2xl p-5 shadow-sm mb-6 flex flex-col sm:flex-row gap-4 sm:items-end">
+        <div class="flex-1">
+            <label for="report-type" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Report Type</label>
+            <select id="report-type" name="type" class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">
+                {% for value, label in report_types.items %}
+                    <option value="{{ value }}" {% if value == selected_report_type %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="bg-emerald-600 text-white px-5 py-3 rounded-xl text-sm font-bold shadow-sm hover:bg-emerald-700 transition-all">Generate</button>
+        <a href="?type={{ selected_report_type }}&download=txt" class="bg-slate-900 text-white px-5 py-3 rounded-xl text-sm font-bold text-center shadow-sm hover:bg-slate-800 transition-all">Download TXT</a>
+        <button type="button" onclick="window.print()" class="bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50 transition-all">Print</button>
+    </form>
+
+    <article class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-10 shadow-sm print:shadow-none print:border-0 print:p-0">
+        <header class="border-b border-slate-200 pb-5 mb-6">
+            <p class="text-xs font-black uppercase tracking-widest text-emerald-600 mb-2">ReMedi</p>
+            <h2 class="text-2xl font-black text-slate-900">{{ report.title }}</h2>
+        </header>
+
+        {% if report.has_data %}
+            <pre class="whitespace-pre-wrap font-sans text-base leading-8 text-slate-700">{{ report.content }}</pre>
+        {% else %}
+            <p class="text-slate-500 font-semibold">No report data available yet.</p>
+        {% endif %}
+    </article>
+</main>
+
+<style>
+    @media print {
+        nav {
+            display: none;
+        }
+
+        body {
+            background: white;
+        }
+    }
+</style>
+{% endblock %}

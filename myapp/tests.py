@@ -33,10 +33,18 @@ from .services.demo_data import (
     DEMO_PATIENT_EMAIL,
     DEMO_PHARMACIST_EMAIL,
 )
+from .services.dashboard import get_dashboard_charts, get_dashboard_statistics
 from .services.explanation import build_explanation
 from .services.fallback import get_ocr_fallback_result
 from .services.pipeline import evaluate_donation
 from .services.qr import ensure_medicine_qr, generate_qr_identifier, lookup_qr, qr_payload, render_qr_data_uri
+from .services.reports import (
+    generate_affordability_report,
+    generate_csr_report,
+    generate_overall_report,
+    generate_waste_report,
+    generate_weekly_report,
+)
 from .services.reservations import release_expired_reservations, reserve_medicine, verify_pickup_otp
 from .services.safety import analyze_image_safety, calculate_donation_risk
 
@@ -1490,6 +1498,425 @@ class ReservationSystemTests(TestCase):
         })
 
         self.assertContains(response, "Invalid OTP")
+
+
+class ImpactDashboardTests(TestCase):
+    def setUp(self):
+        self.donor = User.objects.create_user(
+            username="impact_donor",
+            password="pass12345",
+            role=User.Role.DONOR,
+        )
+        self.patient = User.objects.create_user(
+            username="impact_patient",
+            password="pass12345",
+            role=User.Role.PATIENT,
+        )
+
+    def create_medicine(
+        self,
+        name,
+        status="pending",
+        patient=None,
+        completed_at=None,
+        reserved_until=None,
+        qr=False,
+        verified_at="auto",
+        is_physical_intact=False,
+        is_authentic=False,
+        is_expiry_valid=False,
+    ):
+        if verified_at == "auto":
+            verified_at = timezone.now() if status in {"verified", "sold"} else None
+        medicine = Medicine.objects.create(
+            donor=self.donor,
+            name=name,
+            scientific_name=f"{name} Scientific",
+            batch_number=f"IMPACT-{name[:8]}",
+            expiry_date="2028-05-20",
+            original_price=Decimal("100.00"),
+            status=status,
+            patient=patient,
+            completed_at=completed_at,
+            reserved_until=reserved_until,
+            verified_at=verified_at,
+            is_physical_intact=is_physical_intact,
+            is_authentic=is_authentic,
+            is_expiry_valid=is_expiry_valid,
+        )
+        if qr:
+            ensure_medicine_qr(medicine)
+        return medicine
+
+    def seed_dashboard_medicines(self):
+        self.create_medicine("Pending Med")
+        self.create_medicine("Rejected Med", status="rejected")
+        self.create_medicine("Listing Med", status="verified", qr=True)
+        self.create_medicine(
+            "Reserved Med",
+            status="verified",
+            patient=self.patient,
+            reserved_until=timezone.now() + timedelta(hours=2),
+            qr=True,
+        )
+        self.create_medicine(
+            "Collected Med",
+            status="sold",
+            patient=self.patient,
+            completed_at=timezone.now(),
+            qr=True,
+        )
+
+    def test_dashboard_statistics_computed_correctly(self):
+        self.seed_dashboard_medicines()
+
+        statistics = get_dashboard_statistics()
+
+        self.assertEqual(statistics["medicines_donated"], 5)
+        self.assertEqual(statistics["medicines_approved"], 3)
+        self.assertEqual(statistics["medicines_rejected"], 1)
+        self.assertEqual(statistics["medicines_reserved"], 1)
+        self.assertEqual(statistics["medicines_collected"], 1)
+        self.assertEqual(statistics["active_marketplace_listings"], 1)
+        self.assertEqual(statistics["estimated_waste_prevented"], 3)
+        self.assertEqual(statistics["estimated_patients_helped"], 1)
+
+    def test_approved_count(self):
+        self.create_medicine("Approved Med", status="verified")
+        self.create_medicine("Collected Med", status="sold", completed_at=timezone.now())
+        self.create_medicine("Rejected Med", status="rejected")
+
+        statistics = get_dashboard_statistics()
+
+        self.assertEqual(statistics["medicines_approved"], 2)
+
+    def test_rejected_count(self):
+        self.create_medicine("Rejected Med", status="rejected")
+        self.create_medicine("Pending Med")
+
+        statistics = get_dashboard_statistics()
+
+        self.assertEqual(statistics["medicines_rejected"], 1)
+
+    def test_marketplace_listing_count(self):
+        self.create_medicine("Listing Med", status="verified", qr=True)
+        self.create_medicine("No QR Med", status="verified")
+        self.create_medicine("Reserved Med", status="verified", patient=self.patient, reserved_until=timezone.now() + timedelta(hours=1), qr=True)
+
+        statistics = get_dashboard_statistics()
+
+        self.assertEqual(statistics["active_marketplace_listings"], 1)
+
+    def test_collected_count(self):
+        self.create_medicine("Collected Med", status="sold", completed_at=timezone.now())
+        self.create_medicine("Reserved Med", status="verified", patient=self.patient, reserved_until=timezone.now() + timedelta(hours=1))
+
+        statistics = get_dashboard_statistics()
+
+        self.assertEqual(statistics["medicines_collected"], 1)
+
+    def test_reserved_count(self):
+        self.create_medicine("Reserved Med", status="verified", patient=self.patient, reserved_until=timezone.now() + timedelta(hours=1))
+        self.create_medicine("Expired Med", status="verified", patient=self.patient, reserved_until=timezone.now() - timedelta(hours=1))
+
+        statistics = get_dashboard_statistics()
+
+        self.assertEqual(statistics["medicines_reserved"], 1)
+
+    def test_empty_dashboard(self):
+        statistics = get_dashboard_statistics()
+
+        self.assertFalse(statistics["has_data"])
+        self.assertEqual(statistics["medicines_donated"], 0)
+
+    def chart_by_title(self, charts, title):
+        return next(chart for chart in charts["charts"] if chart["title"] == title)
+
+    def test_dashboard_chart_data_generated_from_medicines(self):
+        self.seed_dashboard_medicines()
+
+        charts = get_dashboard_charts()
+
+        self.assertTrue(charts["has_data"])
+        self.assertEqual(len(charts["charts"]), 5)
+
+    def test_verification_chart_counts(self):
+        self.create_medicine("Approved Med", status="verified")
+        self.create_medicine("Collected Med", status="sold", completed_at=timezone.now())
+        self.create_medicine("Rejected Med", status="rejected")
+        self.create_medicine("Pending Med")
+
+        chart = self.chart_by_title(get_dashboard_charts(), "Verification Outcomes")
+
+        self.assertEqual(chart["labels"], ["Approved", "Rejected", "Pending"])
+        self.assertEqual(chart["data"], [2, 1, 1])
+
+    def test_marketplace_chart_counts(self):
+        self.create_medicine("Available Med", status="verified", qr=True)
+        self.create_medicine("Reserved Med", status="verified", patient=self.patient, reserved_until=timezone.now() + timedelta(hours=1), qr=True)
+        self.create_medicine("Collected Med", status="sold", patient=self.patient, completed_at=timezone.now(), qr=True)
+        self.create_medicine("No QR Med", status="verified")
+
+        chart = self.chart_by_title(get_dashboard_charts(), "Marketplace Distribution")
+
+        self.assertEqual(chart["labels"], ["Available", "Reserved", "Collected"])
+        self.assertEqual(chart["data"], [1, 1, 1])
+
+    def test_risk_chart_counts(self):
+        self.create_medicine(
+            "Low Risk",
+            is_physical_intact=True,
+            is_authentic=True,
+            is_expiry_valid=True,
+        )
+        self.create_medicine(
+            "Medium Risk",
+            is_physical_intact=True,
+            is_authentic=True,
+            is_expiry_valid=False,
+        )
+        self.create_medicine(
+            "High Risk",
+            is_physical_intact=False,
+            is_authentic=False,
+            is_expiry_valid=True,
+        )
+
+        chart = self.chart_by_title(get_dashboard_charts(), "Risk Level Distribution")
+
+        self.assertEqual(chart["labels"], ["Low", "Medium", "High"])
+        self.assertEqual(chart["data"], [1, 1, 1])
+
+    def test_medicine_name_aggregation_chart_uses_top_names(self):
+        self.create_medicine("Napa")
+        self.create_medicine("Napa")
+        self.create_medicine("Ace")
+
+        chart = self.chart_by_title(get_dashboard_charts(), "Medicine Categories")
+
+        self.assertEqual(chart["labels"], ["Napa", "Ace"])
+        self.assertEqual(chart["data"], [2, 1])
+
+    def test_timeline_chart_uses_approval_timestamps_when_available(self):
+        first_day = timezone.now() - timedelta(days=2)
+        second_day = timezone.now() - timedelta(days=1)
+        self.create_medicine("First Approval", status="verified", verified_at=first_day)
+        self.create_medicine("Second Approval", status="sold", completed_at=timezone.now(), verified_at=second_day)
+        self.create_medicine("No Approval Timestamp", status="verified", verified_at=None)
+
+        chart = self.chart_by_title(get_dashboard_charts(), "Timeline")
+
+        self.assertEqual(chart["labels"], [first_day.date().isoformat(), second_day.date().isoformat()])
+        self.assertEqual(chart["data"], [1, 1])
+
+    def test_timeline_chart_is_omitted_without_approval_timestamps(self):
+        self.create_medicine("Approved Without Timestamp", status="verified", verified_at=None)
+
+        chart_titles = [chart["title"] for chart in get_dashboard_charts()["charts"]]
+
+        self.assertNotIn("Timeline", chart_titles)
+
+    def test_empty_dashboard_chart_data(self):
+        charts = get_dashboard_charts()
+
+        self.assertFalse(charts["has_data"])
+        self.assertEqual(charts["charts"], [])
+
+    def test_dashboard_page_renders(self):
+        self.seed_dashboard_medicines()
+
+        response = self.client.get(reverse("impact_dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Impact Dashboard")
+        self.assertContains(response, "Medicines Donated")
+        self.assertContains(response, "Active Marketplace Listings")
+        self.assertContains(response, "dashboard-chart-data")
+        self.assertContains(response, "Verification Outcomes")
+        self.assertContains(response, "https://cdn.jsdelivr.net/npm/chart.js")
+        self.assertTrue(response.context["chart_data"]["has_data"])
+
+    def test_empty_dashboard_page_renders_empty_state(self):
+        response = self.client.get(reverse("impact_dashboard"))
+
+        self.assertContains(response, "No impact data available yet.")
+        self.assertContains(response, "No analytics available yet.")
+        self.assertFalse(response.context["chart_data"]["has_data"])
+
+
+class ImpactReportTests(TestCase):
+    def setUp(self):
+        self.donor = User.objects.create_user(
+            username="private_donor",
+            email="donor@example.com",
+            password="pass12345",
+            role=User.Role.DONOR,
+            phone="01700000000",
+        )
+        self.patient = User.objects.create_user(
+            username="private_patient",
+            email="patient@example.com",
+            password="pass12345",
+            role=User.Role.PATIENT,
+            phone="01800000000",
+        )
+
+    def create_medicine(
+        self,
+        name,
+        status="pending",
+        patient=None,
+        completed_at=None,
+        reserved_until=None,
+        verified_at=None,
+        rejected_at=None,
+        qr=False,
+        original_price=Decimal("100.00"),
+    ):
+        medicine = Medicine.objects.create(
+            donor=self.donor,
+            name=name,
+            scientific_name=f"{name} Scientific",
+            batch_number=f"REPORT-{name[:8]}",
+            expiry_date="2028-05-20",
+            original_price=original_price,
+            status=status,
+            patient=patient,
+            completed_at=completed_at,
+            reserved_until=reserved_until,
+            verified_at=verified_at,
+            rejected_at=rejected_at,
+        )
+        if qr:
+            ensure_medicine_qr(medicine)
+        return medicine
+
+    def seed_report_medicines(self):
+        now = timezone.now()
+        self.create_medicine("Pending Report Med")
+        self.create_medicine("Rejected Report Med", status="rejected", rejected_at=now)
+        self.create_medicine("Available Report Med", status="verified", verified_at=now, qr=True)
+        self.create_medicine(
+            "Reserved Report Med",
+            status="verified",
+            patient=self.patient,
+            reserved_until=now + timedelta(hours=1),
+            verified_at=now,
+            qr=True,
+        )
+        self.create_medicine(
+            "Collected Report Med",
+            status="sold",
+            patient=self.patient,
+            completed_at=now,
+            verified_at=now,
+            qr=True,
+            original_price=Decimal("200.00"),
+        )
+
+    def assert_anonymous(self, text):
+        self.assertNotIn("private_donor", text)
+        self.assertNotIn("private_patient", text)
+        self.assertNotIn("donor@example.com", text)
+        self.assertNotIn("patient@example.com", text)
+        self.assertNotIn("01700000000", text)
+        self.assertNotIn("01800000000", text)
+
+    def test_overall_report(self):
+        self.seed_report_medicines()
+
+        report = generate_overall_report()
+
+        self.assertTrue(report["has_data"])
+        self.assertIn("ReMedi has processed 5 donated medicines.", report["content"])
+        self.assertIn("3 medicines were approved and 1 were rejected.", report["content"])
+        self.assertIn("The approval rate is 60.00% and the collection rate is 33.33%.", report["content"])
+
+    def test_weekly_report(self):
+        self.seed_report_medicines()
+
+        report = generate_weekly_report()
+
+        self.assertTrue(report["has_data"])
+        self.assertIn("3 medicines were approved during this period.", report["content"])
+        self.assertIn("1 medicines were rejected during this period.", report["content"])
+        self.assertIn("1 medicines were collected by patients during this period.", report["content"])
+
+    def test_waste_report(self):
+        self.seed_report_medicines()
+
+        report = generate_waste_report()
+
+        self.assertTrue(report["has_data"])
+        self.assertIn("The estimated medicine waste prevented count is 3.", report["content"])
+        self.assertIn("reduces avoidable medicine waste", report["content"])
+
+    def test_affordability_report(self):
+        self.seed_report_medicines()
+
+        report = generate_affordability_report()
+
+        self.assertTrue(report["has_data"])
+        self.assertIn("The estimated affordability benefit from collected medicines is 140.00 BDT.", report["content"])
+        self.assertIn("The collection rate is 33.33% of approved medicines.", report["content"])
+
+    def test_csr_report(self):
+        self.seed_report_medicines()
+
+        report = generate_csr_report()
+
+        self.assertTrue(report["has_data"])
+        self.assertIn("supports circular healthcare goals", report["content"])
+        self.assertIn("NGO, hospital, pharmacy partner, CSR, and ESG reporting", report["content"])
+
+    def test_empty_database_report(self):
+        report = generate_overall_report()
+
+        self.assertFalse(report["has_data"])
+        self.assertEqual(report["content"], "")
+
+    def test_report_output_is_anonymous(self):
+        self.seed_report_medicines()
+
+        reports = [
+            generate_overall_report(),
+            generate_weekly_report(),
+            generate_waste_report(),
+            generate_affordability_report(),
+            generate_csr_report(),
+        ]
+
+        for report in reports:
+            self.assert_anonymous(report["content"])
+
+    def test_printable_page_renders(self):
+        self.seed_report_medicines()
+
+        response = self.client.get(reverse("impact_reports"), {"type": "csr"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "CSR / ESG Summary")
+        self.assertContains(response, "window.print()")
+        self.assertContains(response, "Download TXT")
+        self.assertTrue(response.context["report"]["has_data"])
+
+    def test_report_page_empty_state(self):
+        response = self.client.get(reverse("impact_reports"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No report data available yet.")
+
+    def test_download_text_works(self):
+        self.seed_report_medicines()
+
+        response = self.client.get(reverse("impact_reports"), {"type": "overall", "download": "txt"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/plain; charset=utf-8")
+        self.assertIn("attachment; filename=\"remedi-overall-impact-report.txt\"", response["Content-Disposition"])
+        text = response.content.decode()
+        self.assertIn("ReMedi has processed 5 donated medicines.", text)
+        self.assert_anonymous(text)
 
 
 class MedicineImageUploadTests(TestCase):

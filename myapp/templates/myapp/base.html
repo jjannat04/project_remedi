@@ -24,6 +24,8 @@
             <!-- Links Section -->
             <div class="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-600">
                 <a href="{% url 'marketplace' %}" class="hover:text-emerald-600 transition-colors">Marketplace</a>
+                <a href="{% url 'impact_dashboard' %}" class="hover:text-emerald-600 transition-colors">Impact Dashboard</a>
+                <a href="{% url 'impact_reports' %}" class="hover:text-emerald-600 transition-colors">Reports</a>
                 <a href="{% url 'corner_map' %}" class="hover:text-emerald-600 transition-colors">Find Corners</a>
                 {% if DEMO_MODE %}
                     <a href="{% url 'judge_entry' %}"

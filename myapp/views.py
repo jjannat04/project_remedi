@@ -10,15 +10,17 @@ from .forms import DonationForm
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
-from django.http import FileResponse, Http404, HttpResponseForbidden
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden
 
 from .services.analytics import calculate_demo_analytics, calculate_medicine_analytics, demo_medicine_queryset
 from .services.demo_data import ensure_demo_user
+from .services.dashboard import get_dashboard_charts, get_dashboard_statistics
 from .services.explanation import build_explanation
 from .services.image_processing import compress_uploaded_image
 from .services.marketplace import get_marketplace_medicines
 from .services.pipeline import evaluate_donation
 from .services.qr import ensure_medicine_qr, render_qr_data_uri
+from .services.reports import REPORT_TYPES, generate_report
 from .services.reservations import reserve_medicine, verify_pickup_otp
 
 
@@ -139,6 +141,32 @@ def marketplace_detail(request, med_id):
     medicine = get_object_or_404(get_marketplace_medicines(), id=med_id)
     return render(request, 'myapp/marketplace_detail.html', {
         'medicine': medicine,
+    })
+
+
+def impact_dashboard(request):
+    return render(request, 'myapp/dashboard.html', {
+        'statistics': get_dashboard_statistics(),
+        'chart_data': get_dashboard_charts(),
+    })
+
+
+def impact_reports(request):
+    report_type = request.GET.get("type", "overall")
+    if report_type not in REPORT_TYPES:
+        report_type = "overall"
+    report = generate_report(report_type)
+
+    if request.GET.get("download") == "txt":
+        content = report["content"] if report["has_data"] else "No report data available yet."
+        response = HttpResponse(content, content_type="text/plain; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="{report["filename"]}"'
+        return response
+
+    return render(request, 'myapp/reports.html', {
+        'report': report,
+        'report_types': REPORT_TYPES,
+        'selected_report_type': report_type,
     })
 
 

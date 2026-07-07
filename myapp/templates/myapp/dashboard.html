@@ -1,0 +1,121 @@
+{% extends 'myapp/base.html' %}
+
+{% block content %}
+<main class="max-w-7xl mx-auto px-4 py-10">
+    <div class="mb-8">
+        <p class="text-xs font-black uppercase tracking-widest text-emerald-600 mb-2">Platform Impact</p>
+        <h1 class="text-3xl font-black text-slate-900">Impact Dashboard</h1>
+        <p class="text-sm text-slate-500 mt-1">Live medicine redistribution statistics from current platform records.</p>
+    </div>
+
+    {% if not statistics.has_data %}
+    <div class="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center">
+        <p class="text-slate-500 font-semibold">No impact data available yet.</p>
+    </div>
+    {% else %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Medicines Donated</p>
+            <p class="text-3xl font-black text-slate-900 mt-2">{{ statistics.medicines_donated }}</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Medicines Approved</p>
+            <p class="text-3xl font-black text-emerald-700 mt-2">{{ statistics.medicines_approved }}</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Medicines Rejected</p>
+            <p class="text-3xl font-black text-red-700 mt-2">{{ statistics.medicines_rejected }}</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Medicines Reserved</p>
+            <p class="text-3xl font-black text-sky-700 mt-2">{{ statistics.medicines_reserved }}</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Medicines Collected</p>
+            <p class="text-3xl font-black text-slate-900 mt-2">{{ statistics.medicines_collected }}</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Active Marketplace Listings</p>
+            <p class="text-3xl font-black text-emerald-700 mt-2">{{ statistics.active_marketplace_listings }}</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Estimated Waste Prevented</p>
+            <p class="text-3xl font-black text-amber-700 mt-2">{{ statistics.estimated_waste_prevented }}</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Estimated Patients Helped</p>
+            <p class="text-3xl font-black text-sky-700 mt-2">{{ statistics.estimated_patients_helped }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <section class="mt-10">
+        <div class="mb-5">
+            <p class="text-xs font-black uppercase tracking-widest text-emerald-600 mb-2">Analytics</p>
+            <h2 class="text-2xl font-black text-slate-900">Visual Impact</h2>
+        </div>
+
+        {% if not chart_data.has_data %}
+        <div class="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center">
+            <p class="text-slate-500 font-semibold">No analytics available yet.</p>
+        </div>
+        {% else %}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {% for chart in chart_data.charts %}
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                <h3 class="text-sm font-black text-slate-800 mb-4">{{ chart.title }}</h3>
+                <div class="h-72">
+                    <canvas id="{{ chart.id }}"></canvas>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {{ chart_data|json_script:"dashboard-chart-data" }}
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            const dashboardChartData = JSON.parse(document.getElementById("dashboard-chart-data").textContent);
+
+            dashboardChartData.charts.forEach((chart) => {
+                const canvas = document.getElementById(chart.id);
+                const dataset = {
+                    label: chart.title,
+                    data: chart.data,
+                    backgroundColor: chart.backgroundColor,
+                    borderColor: chart.borderColor || chart.backgroundColor,
+                    fill: chart.fill || false,
+                    tension: chart.type === "line" ? 0.3 : 0,
+                };
+
+                new Chart(canvas, {
+                    type: chart.type,
+                    data: {
+                        labels: chart.labels,
+                        datasets: [dataset],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: chart.indexAxis || "x",
+                        plugins: {
+                            legend: {
+                                display: chart.type === "pie",
+                                position: "bottom",
+                            },
+                        },
+                        scales: chart.type === "pie" ? {} : {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0,
+                                },
+                            },
+                        },
+                    },
+                });
+            });
+        </script>
+        {% endif %}
+    </section>
+</main>
+{% endblock %}
