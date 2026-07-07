@@ -3,10 +3,12 @@
 from django.db.models import Q
 
 from myapp.models import Medicine
+from myapp.services.reservations import release_expired_reservations
 
 
 def get_marketplace_medicines(search_query=""):
     """Return public marketplace medicines approved by pharmacists and QR verified."""
+    release_expired_reservations()
     medicines = (
         Medicine.objects
         .filter(status="verified", patient__isnull=True, qr_code_id__isnull=False)

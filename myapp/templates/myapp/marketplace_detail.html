@@ -31,6 +31,13 @@
             <div class="flex justify-between gap-4"><dt class="font-bold">Pharmacist Status</dt><dd>Verified</dd></div>
             <div class="flex justify-between gap-4"><dt class="font-bold">QR Verified</dt><dd>{% if medicine.qr_code_id %}Yes{% else %}No{% endif %}</dd></div>
         </dl>
+
+        <form method="post" action="{% url 'reserve_medicine' medicine.id %}" class="mt-6">
+            {% csrf_token %}
+            <button type="submit" class="w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700">
+                Reserve
+            </button>
+        </form>
     </section>
 </main>
 {% endblock %}

@@ -54,6 +54,9 @@ class Medicine(models.Model):
     qr_generated_at = models.DateTimeField(null=True, blank=True)
     patient = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='purchases')
     ordered_at = models.DateTimeField(null=True, blank=True)
+    reserved_until = models.DateTimeField(null=True, blank=True)
+    pickup_otp = models.CharField(max_length=6, blank=True)
+    otp_generated_at = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         self.resale_price = self.original_price * Decimal("0.30")

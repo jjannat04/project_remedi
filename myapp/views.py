@@ -19,6 +19,7 @@ from .services.image_processing import compress_uploaded_image
 from .services.marketplace import get_marketplace_medicines
 from .services.pipeline import evaluate_donation
 from .services.qr import ensure_medicine_qr, render_qr_data_uri
+from .services.reservations import reserve_medicine, verify_pickup_otp
 
 
 def hackathon_media_serve(request, path):
@@ -142,6 +143,15 @@ def marketplace_detail(request, med_id):
 
 
 @login_required
+def reserve_marketplace_medicine(request, med_id):
+    if request.method != 'POST':
+        return redirect('marketplace_detail', med_id=med_id)
+
+    result = reserve_medicine(med_id, request.user)
+    return render(request, 'myapp/reservation_confirmation.html', result)
+
+
+@login_required
 def verification_queue(request):
     return pharmacist_queue(request)
 
@@ -166,6 +176,23 @@ def pharmacist_queue(request):
     if settings.DEMO_MODE:
         context['demo_analytics'] = calculate_demo_analytics()
     return render(request, 'myapp/verify_form.html', context)
+
+
+@login_required
+def pharmacist_pickup(request):
+    if request.user.role != User.Role.PHARMACIST or not request.user.is_active:
+        return HttpResponseForbidden("Your pharmacist account is either not verified or you don't have permission.")
+
+    result = None
+    if request.method == 'POST':
+        result = verify_pickup_otp(
+            request.POST.get('identifier'),
+            request.POST.get('otp'),
+        )
+
+    return render(request, 'myapp/pharmacist_pickup.html', {
+        'result': result,
+    })
 
 
 @login_required
@@ -313,14 +340,4 @@ def profile_view(request):
 
 @login_required
 def order_medicine(request, med_id):
-    medicine = get_object_or_404(Medicine, id=med_id)
-    
-    if medicine.status == 'verified' and medicine.patient is None:
-        medicine.patient = request.user
-        medicine.status = 'sold'  # Force the status change here
-        medicine.ordered_at = timezone.now()
-        medicine.completed_at = medicine.ordered_at
-        medicine.save()
-        return redirect('profile')
-    
-    return redirect('marketplace')
+    return reserve_marketplace_medicine(request, med_id)

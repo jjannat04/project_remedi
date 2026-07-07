@@ -37,6 +37,7 @@ from .services.explanation import build_explanation
 from .services.fallback import get_ocr_fallback_result
 from .services.pipeline import evaluate_donation
 from .services.qr import ensure_medicine_qr, generate_qr_identifier, lookup_qr, qr_payload, render_qr_data_uri
+from .services.reservations import release_expired_reservations, reserve_medicine, verify_pickup_otp
 from .services.safety import analyze_image_safety, calculate_donation_risk
 
 
@@ -1312,6 +1313,183 @@ class MarketplaceListingTests(TestCase):
         response = self.client.get(reverse("marketplace_page"))
 
         self.assertContains(response, "No verified medicines available.")
+
+
+class ReservationSystemTests(TestCase):
+    def setUp(self):
+        self.donor = User.objects.create_user(
+            username="reservation_donor",
+            email="reservation-donor@example.com",
+            password="pass12345",
+            role=User.Role.DONOR,
+        )
+        self.patient = User.objects.create_user(
+            username="reservation_patient",
+            password="pass12345",
+            role=User.Role.PATIENT,
+        )
+        self.other_patient = User.objects.create_user(
+            username="other_patient",
+            password="pass12345",
+            role=User.Role.PATIENT,
+        )
+        self.pharmacist = User.objects.create_user(
+            username="pickup_pharmacist",
+            password="pass12345",
+            role=User.Role.PHARMACIST,
+            is_active=True,
+        )
+        self.medicine = Medicine.objects.create(
+            donor=self.donor,
+            name="Reservation Med",
+            scientific_name="Reservation Scientific",
+            category="500 mg",
+            batch_number="RSV-001",
+            expiry_date="2028-05-20",
+            original_price=Decimal("100.00"),
+            status="verified",
+            verified_at=timezone.now(),
+        )
+        ensure_medicine_qr(self.medicine)
+
+    def reserve(self):
+        result = reserve_medicine(self.medicine.id, self.patient)
+        self.medicine.refresh_from_db()
+        return result
+
+    def test_successful_reservation(self):
+        self.client.force_login(self.patient)
+
+        response = self.client.post(reverse("reserve_medicine", args=[self.medicine.id]))
+
+        self.assertContains(response, "Reservation Successful")
+        self.assertContains(response, "Reservation Med")
+        self.medicine.refresh_from_db()
+        self.assertEqual(self.medicine.patient, self.patient)
+        self.assertIsNotNone(self.medicine.reserved_until)
+
+    def test_otp_generated(self):
+        result = self.reserve()
+
+        self.assertTrue(result["otp"])
+        self.assertEqual(self.medicine.pickup_otp, result["otp"])
+        self.assertIsNotNone(self.medicine.otp_generated_at)
+
+    def test_otp_length_is_6_digits(self):
+        self.reserve()
+
+        self.assertEqual(len(self.medicine.pickup_otp), 6)
+        self.assertTrue(self.medicine.pickup_otp.isdigit())
+
+    def test_reservation_expiry(self):
+        before = timezone.now()
+        self.reserve()
+
+        self.assertGreaterEqual(self.medicine.reserved_until, before + timedelta(hours=24))
+
+    def test_expired_reservation_release(self):
+        self.reserve()
+        Medicine.objects.filter(id=self.medicine.id).update(reserved_until=timezone.now() - timedelta(minutes=1))
+
+        released_count = release_expired_reservations()
+        self.medicine.refresh_from_db()
+
+        self.assertEqual(released_count, 1)
+        self.assertIsNone(self.medicine.patient)
+        self.assertIsNone(self.medicine.reserved_until)
+        self.assertEqual(self.medicine.pickup_otp, "")
+
+    def test_wrong_otp(self):
+        self.reserve()
+
+        result = verify_pickup_otp(self.medicine.qr_code_id, "000000")
+        self.medicine.refresh_from_db()
+
+        self.assertFalse(result["success"])
+        self.assertEqual(result["message"], "Invalid OTP")
+        self.assertEqual(self.medicine.status, "verified")
+        self.assertIsNone(self.medicine.completed_at)
+
+    def test_correct_otp(self):
+        self.reserve()
+
+        result = verify_pickup_otp(self.medicine.qr_code_id, self.medicine.pickup_otp)
+
+        self.assertTrue(result["success"])
+        self.assertEqual(result["message"], "Medicine collected successfully.")
+
+    def test_already_reserved_medicine(self):
+        self.reserve()
+
+        result = reserve_medicine(self.medicine.id, self.other_patient)
+
+        self.assertFalse(result["success"])
+        self.assertEqual(result["message"], "This medicine is currently reserved.")
+
+    def test_double_reservation_prevented(self):
+        self.reserve()
+        reserve_medicine(self.medicine.id, self.other_patient)
+        self.medicine.refresh_from_db()
+
+        self.assertEqual(self.medicine.patient, self.patient)
+
+    def test_medicine_marked_collected(self):
+        self.reserve()
+
+        verify_pickup_otp(self.medicine.qr_code_id, self.medicine.pickup_otp)
+        self.medicine.refresh_from_db()
+
+        self.assertEqual(self.medicine.status, "sold")
+        self.assertIsNotNone(self.medicine.completed_at)
+
+    def test_inventory_updated(self):
+        self.reserve()
+
+        verify_pickup_otp(self.medicine.qr_code_id, self.medicine.pickup_otp)
+
+        response = self.client.get(reverse("marketplace_page"))
+        self.assertNotContains(response, "Reservation Med")
+
+    def test_reservation_removed_after_pickup(self):
+        self.reserve()
+
+        verify_pickup_otp(self.medicine.qr_code_id, self.medicine.pickup_otp)
+        self.medicine.refresh_from_db()
+
+        self.assertIsNone(self.medicine.reserved_until)
+        self.assertEqual(self.medicine.pickup_otp, "")
+        self.assertIsNone(self.medicine.otp_generated_at)
+
+    def test_collected_medicine_unavailable_for_future_reservation(self):
+        self.reserve()
+        verify_pickup_otp(self.medicine.qr_code_id, self.medicine.pickup_otp)
+
+        result = reserve_medicine(self.medicine.id, self.other_patient)
+
+        self.assertFalse(result["success"])
+        self.assertEqual(result["message"], "This medicine is not available.")
+
+    def test_pharmacist_pickup_page_verifies_correct_otp(self):
+        self.reserve()
+        self.client.force_login(self.pharmacist)
+
+        response = self.client.post(reverse("pharmacist_pickup"), {
+            "identifier": self.medicine.qr_code_id,
+            "otp": self.medicine.pickup_otp,
+        })
+
+        self.assertContains(response, "Medicine collected successfully.")
+
+    def test_pharmacist_pickup_page_rejects_wrong_otp(self):
+        self.reserve()
+        self.client.force_login(self.pharmacist)
+
+        response = self.client.post(reverse("pharmacist_pickup"), {
+            "identifier": self.medicine.qr_code_id,
+            "otp": "000000",
+        })
+
+        self.assertContains(response, "Invalid OTP")
 
 
 class MedicineImageUploadTests(TestCase):

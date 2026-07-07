@@ -17,10 +17,12 @@ urlpatterns = [
     
     path('verify-queue/', views.verification_queue, name='verification_queue'),
     path('pharmacist/queue/', views.pharmacist_queue, name='pharmacist_queue'),
+    path('pharmacist/pickup/', views.pharmacist_pickup, name='pharmacist_pickup'),
     path('pharmacist/review/<int:med_id>/', views.pharmacist_review, name='pharmacist_review'),
     path('verify/<int:med_id>/', views.verify_medicine, name='verify_medicine'),
     path('map/', views.corner_map, name='corner_map'),
     path('donate/', views.donate_medicine, name='donate_medicine'),
     path('profile/', views.profile_view, name='profile'),
     path('order/<int:med_id>/', views.order_medicine, name='order_medicine'),
+    path('reserve/<int:med_id>/', views.reserve_marketplace_medicine, name='reserve_medicine'),
 ]

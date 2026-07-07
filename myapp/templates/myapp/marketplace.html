@@ -103,10 +103,13 @@
                        class="block w-full text-center border border-slate-300 text-slate-700 font-bold py-3 rounded-lg transition-colors hover:bg-slate-50">
                         View Details
                     </a>
-                    <a href="{% url 'order_medicine' med.id %}"
-                       class="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-colors">
-                        Reserve
-                    </a>
+                    <form method="post" action="{% url 'reserve_medicine' med.id %}">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-colors">
+                            Reserve
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
