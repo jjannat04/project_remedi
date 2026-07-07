@@ -16,6 +16,7 @@ from .services.analytics import calculate_demo_analytics, calculate_medicine_ana
 from .services.demo_data import ensure_demo_user
 from .services.explanation import build_explanation
 from .services.image_processing import compress_uploaded_image
+from .services.marketplace import get_marketplace_medicines
 from .services.pipeline import evaluate_donation
 from .services.qr import ensure_medicine_qr, render_qr_data_uri
 
@@ -107,8 +108,8 @@ def signup(request):
 
 
 def marketplace(request):
-    # Simplified Filter: Show everything that is verified and not yet sold
-    medicines = Medicine.objects.filter(status='verified').filter(patient=None)
+    search_query = request.GET.get('q', '')
+    medicines = get_marketplace_medicines(search_query)
     reserved_medicines = Medicine.objects.filter(status='verified', patient__isnull=False, completed_at__isnull=True)
 
     # Calculate Total Savings
@@ -125,11 +126,19 @@ def marketplace(request):
     context = {
         'medicines': medicines,
         'reserved_medicines': reserved_medicines,
+        'search_query': search_query,
         'total_saved': total_saved,
     }
     if settings.DEMO_MODE:
         context['demo_analytics'] = calculate_demo_analytics()
     return render(request, 'myapp/marketplace.html', context)
+
+
+def marketplace_detail(request, med_id):
+    medicine = get_object_or_404(get_marketplace_medicines(), id=med_id)
+    return render(request, 'myapp/marketplace_detail.html', {
+        'medicine': medicine,
+    })
 
 
 @login_required

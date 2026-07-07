@@ -4,6 +4,8 @@ from . import views
 
 urlpatterns = [
     path('', views.marketplace, name='marketplace'),
+    path('marketplace/', views.marketplace, name='marketplace_page'),
+    path('marketplace/<int:med_id>/', views.marketplace_detail, name='marketplace_detail'),
     path('judge/', views.judge_entry, name='judge_entry'),
     path('judge/ocr/', views.judge_ocr, name='judge_ocr'),
     path('judge/<str:kind>/login/', views.judge_demo_login, name='judge_demo_login'),

@@ -7,6 +7,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 import base64
+from datetime import timedelta
 from decimal import Decimal
 import shutil
 import tempfile
@@ -35,7 +36,7 @@ from .services.demo_data import (
 from .services.explanation import build_explanation
 from .services.fallback import get_ocr_fallback_result
 from .services.pipeline import evaluate_donation
-from .services.qr import generate_qr_identifier, lookup_qr, qr_payload, render_qr_data_uri
+from .services.qr import ensure_medicine_qr, generate_qr_identifier, lookup_qr, qr_payload, render_qr_data_uri
 from .services.safety import analyze_image_safety, calculate_donation_risk
 
 
@@ -1181,6 +1182,136 @@ class PharmacistReviewWorkflowTests(TestCase):
         self.assertTrue(png_bytes.startswith(b"\x89PNG"))
         self.assertContains(response, "Download QR")
         self.assertContains(response, f'download="remedi-{self.medicine.qr_code_id}.png"')
+
+
+class MarketplaceListingTests(TestCase):
+    def setUp(self):
+        self.donor = User.objects.create_user(
+            username="market_donor",
+            email="market-donor@example.com",
+            password="pass12345",
+            role=User.Role.DONOR,
+            phone="01700000000",
+        )
+
+    def create_medicine(self, name="Napa 500 mg", scientific_name="Paracetamol", status="verified", qr=True, verified_at=None):
+        medicine = Medicine.objects.create(
+            donor=self.donor,
+            name=name,
+            scientific_name=scientific_name,
+            category="500 mg",
+            batch_number=f"BATCH-{name[:4]}",
+            expiry_date="2028-05-20",
+            original_price=Decimal("100.00"),
+            status=status,
+            verified_at=verified_at if status == "verified" else None,
+            rejected_at=timezone.now() if status == "rejected" else None,
+        )
+        if qr:
+            ensure_medicine_qr(medicine)
+        return medicine
+
+    def test_only_approved_medicines_appear(self):
+        approved = self.create_medicine(name="Approved Med")
+        self.create_medicine(name="Rejected Med", status="rejected")
+        self.create_medicine(name="Pending Med", status="pending")
+
+        response = self.client.get(reverse("marketplace_page"))
+
+        self.assertContains(response, approved.name)
+        self.assertNotContains(response, "Rejected Med")
+        self.assertNotContains(response, "Pending Med")
+
+    def test_rejected_medicines_hidden(self):
+        self.create_medicine(name="Rejected Only", status="rejected")
+
+        response = self.client.get(reverse("marketplace_page"))
+
+        self.assertNotContains(response, "Rejected Only")
+        self.assertContains(response, "No verified medicines available.")
+
+    def test_pending_medicines_hidden(self):
+        self.create_medicine(name="Pending Only", status="pending")
+
+        response = self.client.get(reverse("marketplace_page"))
+
+        self.assertNotContains(response, "Pending Only")
+        self.assertContains(response, "No verified medicines available.")
+
+    def test_search_by_medicine_name(self):
+        self.create_medicine(name="Napa 500 mg")
+        self.create_medicine(name="Seclo 20 mg", scientific_name="Omeprazole")
+
+        response = self.client.get(reverse("marketplace_page"), {"q": "napa"})
+
+        self.assertContains(response, "Napa 500 mg")
+        self.assertNotContains(response, "Seclo 20 mg")
+
+    def test_search_by_scientific_name(self):
+        self.create_medicine(name="Napa 500 mg", scientific_name="Paracetamol")
+        self.create_medicine(name="Seclo 20 mg", scientific_name="Omeprazole")
+
+        response = self.client.get(reverse("marketplace_page"), {"q": "omeprazole"})
+
+        self.assertContains(response, "Seclo 20 mg")
+        self.assertNotContains(response, "Napa 500 mg")
+
+    def test_marketplace_detail_page(self):
+        medicine = self.create_medicine(name="Detail Med", scientific_name="Detail Scientific")
+
+        response = self.client.get(reverse("marketplace_detail", args=[medicine.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Detail Med")
+        self.assertContains(response, "Detail Scientific")
+        self.assertContains(response, "Batch Number")
+        self.assertContains(response, "Pharmacist Status")
+        self.assertContains(response, "QR Verified")
+
+    def test_no_donor_information_exposed(self):
+        self.donor.first_name = "Private"
+        self.donor.last_name = "Donor"
+        self.donor.save()
+        medicine = self.create_medicine(name="Privacy Med")
+
+        list_response = self.client.get(reverse("marketplace_page"))
+        detail_response = self.client.get(reverse("marketplace_detail", args=[medicine.id]))
+
+        for response in (list_response, detail_response):
+            self.assertNotContains(response, self.donor.username)
+            self.assertNotContains(response, self.donor.email)
+            self.assertNotContains(response, self.donor.phone)
+            self.assertNotContains(response, "Private")
+
+    def test_qr_badge_shown_only_when_qr_exists(self):
+        self.create_medicine(name="QR Medicine")
+        self.create_medicine(name="No QR Medicine", qr=False)
+
+        response = self.client.get(reverse("marketplace_page"))
+
+        self.assertContains(response, "QR Medicine")
+        self.assertContains(response, "QR Verified")
+        self.assertNotContains(response, "No QR Medicine")
+
+    def test_correct_ordering(self):
+        older = self.create_medicine(
+            name="Older Approved",
+            verified_at=timezone.now() - timedelta(days=2),
+        )
+        newer = self.create_medicine(
+            name="Newer Approved",
+            verified_at=timezone.now(),
+        )
+
+        response = self.client.get(reverse("marketplace_page"))
+        content = response.content.decode()
+
+        self.assertLess(content.index(newer.name), content.index(older.name))
+
+    def test_empty_marketplace(self):
+        response = self.client.get(reverse("marketplace_page"))
+
+        self.assertContains(response, "No verified medicines available.")
 
 
 class MedicineImageUploadTests(TestCase):
