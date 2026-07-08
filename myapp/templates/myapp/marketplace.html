@@ -229,6 +229,10 @@
                             <p class="max-w-xl text-base leading-relaxed text-slate-100 sm:text-lg">
                                 Secure, affordable, and vetted care option right in your neighborhood. Claim the supplies you need using our safe, end-to-end traceable pickup architecture.
                             </p>
+                            <div class="inline-flex w-fit items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-black text-white ring-1 ring-white/25">
+                                <i class="bi bi-tags"></i>
+                                ReMedi medicines are 70% off actual price
+                            </div>
                             <div class="pt-2 flex flex-col gap-3 sm:flex-row">
                                 <a href="#available-medicines" class="app-btn inline-flex items-center justify-center gap-2 rounded-xl bg-[#0FA3B1] px-5 py-3 text-sm font-semibold text-slate-950 shadow-md transition hover:bg-[#14b8c6]">
                                     <i class="bi bi-search"></i> Find Medicines Nearby
@@ -249,8 +253,9 @@
                                 <p class="text-xs font-bold uppercase tracking-widest text-cyan-50">Community Support</p>
                             </div>
                             <div class="mt-5">
-                                <p class="text-4xl font-black tracking-tight text-white sm:text-5xl">{{ demo_analytics.patients_helped_count|default:0 }}</p>
-                                <p class="mt-2 text-sm font-semibold text-cyan-50">Patients Benefited</p>
+                                <p class="text-4xl font-black tracking-tight text-white sm:text-5xl">70% OFF</p>
+                                <p class="mt-2 text-sm font-semibold text-cyan-50">Compared with actual price</p>
+                                <p class="mt-1 text-xs text-cyan-50/80">{{ demo_analytics.patients_helped_count|default:0 }} patients benefited through ReMedi access</p>
                                 {% comment %} <p class="mt-1 text-xs text-emerald-400 font-semibold">Saved {{ total_saved }} BDT in expenses</p> {% endcomment %}
                             </div>
                         </div>
@@ -328,6 +333,9 @@
             <p class="text-xs font-black uppercase tracking-widest text-teal-700">Marketplace</p>
             <h2 class="text-3xl font-black text-slate-950">Available Medicines</h2>
             <p class="text-sm text-slate-500">Verified medicines ready for secure reservation and pickup.</p>
+            <span class="mt-3 inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1 text-xs font-black uppercase tracking-wider text-teal-800 ring-1 ring-teal-100">
+                <i class="bi bi-tags"></i> 70% off actual price
+            </span>
         </div>
         <form method="get" class="app-card app-card-static flex w-full gap-2 p-2 md:w-auto">
     <div class="relative flex-1 md:w-96">
@@ -376,8 +384,9 @@
 
                 <div class="grid grid-cols-2 gap-3 text-sm">
                     <div class="rounded-2xl bg-emerald-50 p-3">
-                        <p class="text-xs font-black uppercase text-emerald-700">Price</p>
+                        <p class="text-xs font-black uppercase text-emerald-700">ReMedi Price</p>
                         <p class="mt-1 text-lg font-black text-emerald-700">{{ med.resale_price }} BDT</p>
+                        <p class="mt-1 text-[11px] font-bold text-emerald-700/80">70% off actual price</p>
                     </div>
                     <div class="rounded-2xl bg-slate-50 p-3">
                         <p class="text-xs font-black uppercase text-slate-400">Expiry</p>

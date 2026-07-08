@@ -19,3 +19,5 @@ db.sqlite3
 data.json
 
 media/
+output/
+scripts/
