@@ -1,15 +1,13 @@
 {% extends 'myapp/base.html' %}
 
 {% block content %}
-<div class="min-h-screen bg-slate-50 py-12 px-4">
+<div class="min-h-screen py-12 px-4">
     <div class="max-w-4xl mx-auto">
         
         <!-- Audit Header -->
         <div class="flex items-center gap-4 mb-10">
             <div class="bg-emerald-100 p-3 rounded-2xl">
-                <svg class="w-8 h-8 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                </svg>
+                <i class="bi bi-clipboard2-pulse text-3xl text-emerald-700"></i>
             </div>
             <div>
                 <h1 class="text-3xl font-black text-slate-900 tracking-tight">Triple-Check Audit Queue</h1>
@@ -18,7 +16,7 @@
         </div>
 
         <!-- Queue Status Banner -->
-        <div class="bg-white border-l-4 border-emerald-500 p-4 mb-8 rounded-r-xl shadow-sm">
+        <div class="app-card border-l-4 border-emerald-500 p-4 mb-8">
             <div class="flex justify-between items-center">
                 <span class="text-sm font-bold text-slate-700">Audit Status: <span class="text-emerald-600 italic">Active Session</span></span>
                 <span class="text-xs font-mono bg-slate-100 px-2 py-1 rounded text-slate-500">Items Pending: {{ meds.count }}</span>
@@ -28,7 +26,7 @@
         <!-- The Queue -->
         <div class="space-y-6">
             {% for med in meds %}
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all overflow-hidden group">
+            <div class="app-card overflow-hidden group">
                 <div class="p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     
                     <div class="space-y-1">
@@ -39,16 +37,14 @@
                         <div class="flex flex-wrap gap-4 text-sm text-slate-500">
                             <p><span class="font-bold text-slate-400">Batch:</span> {{ med.batch_number }}</p>
                             <p><span class="font-bold text-slate-400">Expiry:</span> <span class="text-red-500 font-semibold">{{ med.expiry_date }}</span></p>
-                            <p><span class="font-bold text-slate-400">Donor:</span> @{{ med.donor.username }}</p>
+                            <p><span class="font-bold text-slate-400">Submission:</span> Anonymized</p>
                         </div>
                     </div>
 
                     <div class="shrink-0">
-                        <a href="{% url 'verify_medicine' med.id %}" class="inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-emerald-600 transition-all shadow-lg shadow-slate-200">
+                        <a href="{% url 'verify_medicine' med.id %}" class="app-btn app-btn-dark">
                             Start Triple-Check
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                            </svg>
+                            <i class="bi bi-arrow-right"></i>
                         </a>
                     </div>
                 </div>
@@ -67,11 +63,9 @@
                 </div>
             </div>
             {% empty %}
-            <div class="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+            <div class="app-card border-dashed text-center py-20">
                 <div class="bg-emerald-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
+                    <i class="bi bi-check2 text-3xl text-emerald-500"></i>
                 </div>
                 <h3 class="text-xl font-bold text-slate-800">Queue Cleared</h3>
                 <p class="text-slate-500">All medicines have been audited. Excellent work.</p>

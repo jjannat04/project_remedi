@@ -16,13 +16,13 @@
             <form method="post" action="{% url 'judge_demo_login' 'donor' %}">
                 {% csrf_token %}
                 <button type="submit" class="w-full sm:w-auto bg-emerald-600 text-white px-5 py-3 rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors">
-                    Enter as Demo Donor
+                    Enter as Demo User
                 </button>
             </form>
             <form method="post" action="{% url 'judge_demo_login' 'pharmacist' %}">
                 {% csrf_token %}
                 <button type="submit" class="w-full sm:w-auto bg-amber-500 text-white px-5 py-3 rounded-lg text-sm font-bold hover:bg-amber-600 transition-colors">
-                    Enter as Demo Central Pharmacist
+                    Enter as Demo Verifier
                 </button>
             </form>
         </div>

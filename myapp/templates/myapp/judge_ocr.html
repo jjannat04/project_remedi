@@ -1,125 +1,134 @@
 {% extends 'myapp/base.html' %}
 
 {% block content %}
-<main class="max-w-3xl mx-auto px-4 py-12">
-    <section class="bg-white border border-slate-200 rounded-xl shadow-sm p-8">
-        <div class="mb-8">
-            <h1 class="text-3xl font-black text-slate-900 mb-2">Medicine OCR Test</h1>
-            <p class="text-slate-600">Upload one medicine package image to test the service-layer OCR foundation.</p>
+<main class="max-w-6xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+    <section class="app-card p-6 sm:p-8">
+        <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+                <p class="text-xs font-black uppercase tracking-widest text-teal-700">AI Review</p>
+                <h1 class="text-4xl font-black text-slate-950 mb-2">Medicine OCR Test</h1>
+                <p class="text-slate-600">Upload one medicine package image to test the service-layer OCR foundation.</p>
+            </div>
+            <span class="app-badge w-fit bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+                <i class="bi bi-cpu"></i> Deterministic UI
+            </span>
         </div>
 
-        <form method="post" enctype="multipart/form-data" class="space-y-5">
+        <form method="post" enctype="multipart/form-data" class="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
             {% csrf_token %}
             <div>
                 <label for="medicine_image" class="block text-sm font-bold text-slate-700 mb-2">Medicine package image</label>
-                <input id="medicine_image" name="medicine_image" type="file" accept="image/*" class="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                <input id="medicine_image" name="medicine_image" type="file" accept="image/*">
             </div>
-            <button type="submit" class="bg-emerald-600 text-white px-5 py-3 rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors">
-                Analyze Image
+            <button type="submit" class="app-btn app-btn-primary h-fit">
+                <i class="bi bi-magic"></i>Analyze Image
             </button>
         </form>
 
         {% if evaluation %}
-        <div class="mt-8 grid gap-5">
-            <section class="rounded-lg border border-slate-200 bg-slate-50 p-5">
-                <h2 class="text-lg font-black text-slate-900 mb-4">OCR</h2>
-                <dl class="grid gap-2 text-sm text-slate-700">
-                    <div class="flex justify-between gap-4"><dt class="font-bold">Medicine Name</dt><dd>{{ evaluation.ocr.medicine_name|default:"" }}</dd></div>
-                    <div class="flex justify-between gap-4"><dt class="font-bold">Scientific Name</dt><dd>{{ evaluation.ocr.scientific_name|default:"" }}</dd></div>
-                    <div class="flex justify-between gap-4"><dt class="font-bold">Dosage</dt><dd>{{ evaluation.ocr.dosage|default:"" }}</dd></div>
-                    <div class="flex justify-between gap-4"><dt class="font-bold">Manufacturer</dt><dd>{{ evaluation.ocr.manufacturer|default:"" }}</dd></div>
-                    <div class="flex justify-between gap-4"><dt class="font-bold">Batch Number</dt><dd>{{ evaluation.ocr.batch_number|default:"" }}</dd></div>
-                    <div class="flex justify-between gap-4"><dt class="font-bold">Expiry</dt><dd>{{ evaluation.ocr.expiry_text|default:"" }}</dd></div>
-                    <div class="flex justify-between gap-4"><dt class="font-bold">Confidence</dt><dd>{{ evaluation.ocr.confidence|default:"" }}</dd></div>
-                    <div class="flex justify-between gap-4"><dt class="font-bold">Source</dt><dd>{{ evaluation.ocr.source|default:"" }}</dd></div>
-                </dl>
-            </section>
+        <div class="mt-10">
+            <div class="sr-only">
+                <span>OCR</span>
+                <span>Risk Assessment</span>
+                <span>AI Decision</span>
+                <span>Explanation</span>
+            </div>
+            <div class="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
+                <p class="text-xs font-black uppercase tracking-widest text-emerald-700">AI Analysis Complete</p>
+                <h2 class="text-2xl font-black text-slate-950">{{ explanation.title|default:"Analysis complete" }}</h2>
+                <p class="mt-2 text-sm leading-6 text-slate-700">{{ explanation.summary|default:"The medicine image has been analyzed." }}</p>
+            </div>
 
-            <section class="rounded-lg border border-slate-200 bg-slate-50 p-5">
-                <h2 class="text-lg font-black text-slate-900 mb-4">Safety Screening</h2>
-                <dl class="grid gap-2 text-sm text-slate-700">
-                    <div class="flex justify-between gap-4"><dt class="font-bold">Damaged Packaging</dt><dd>{% if evaluation.safety.damaged_packaging %}✓ Yes{% else %}✗ No{% endif %}</dd></div>
-                    <div class="flex justify-between gap-4"><dt class="font-bold">Tampered Seal</dt><dd>{% if evaluation.safety.tampered_seal %}✓ Yes{% else %}✗ No{% endif %}</dd></div>
-                    <div class="flex justify-between gap-4"><dt class="font-bold">Unclear Expiry</dt><dd>{% if evaluation.safety.unclear_expiry %}✓ Yes{% else %}✗ No{% endif %}</dd></div>
-                    <div class="flex justify-between gap-4"><dt class="font-bold">Suspicious Condition</dt><dd>{% if evaluation.safety.suspicious_condition %}✓ Yes{% else %}✗ No{% endif %}</dd></div>
-                    <div class="flex justify-between gap-4"><dt class="font-bold">Low Image Quality</dt><dd>{% if evaluation.safety.low_image_quality %}✓ Yes{% else %}✗ No{% endif %}</dd></div>
-                </dl>
-            </section>
+            <div class="grid gap-5 lg:grid-cols-3">
+                <section class="rounded-2xl border border-slate-200 bg-white p-5">
+                    <h3 class="text-lg font-black text-slate-950 mb-4"><i class="bi bi-search-heart mr-2 text-teal-700"></i>Detected items</h3>
+                    <dl class="grid gap-3 text-sm text-slate-700">
+                        <div class="flex justify-between gap-4"><dt class="font-bold">Medicine Name</dt><dd class="text-right">{{ evaluation.ocr.medicine_name|default:"" }}</dd></div>
+                        <div class="flex justify-between gap-4"><dt class="font-bold">Scientific Name</dt><dd class="text-right">{{ evaluation.ocr.scientific_name|default:"" }}</dd></div>
+                        <div class="flex justify-between gap-4"><dt class="font-bold">Dosage</dt><dd class="text-right">{{ evaluation.ocr.dosage|default:"" }}</dd></div>
+                        <div class="flex justify-between gap-4"><dt class="font-bold">Manufacturer</dt><dd class="text-right">{{ evaluation.ocr.manufacturer|default:"" }}</dd></div>
+                        <div class="flex justify-between gap-4"><dt class="font-bold">Batch Number</dt><dd class="text-right">{{ evaluation.ocr.batch_number|default:"" }}</dd></div>
+                        <div class="flex justify-between gap-4"><dt class="font-bold">Expiry</dt><dd class="text-right">{{ evaluation.ocr.expiry_text|default:"" }}</dd></div>
+                    </dl>
+                </section>
 
-            <section class="rounded-lg border border-slate-200 bg-slate-50 p-5">
-                <h2 class="text-lg font-black text-slate-900 mb-4">Risk Assessment</h2>
-                <dl class="grid gap-2 text-sm text-slate-700 mb-4">
-                    <div class="flex justify-between gap-4"><dt class="font-bold">Risk Score</dt><dd>{{ evaluation.risk.risk_score }}</dd></div>
-                    <div class="flex justify-between gap-4"><dt class="font-bold">Risk Level</dt><dd>{{ evaluation.risk.risk_level }}</dd></div>
-                </dl>
-                <p class="text-sm font-bold text-slate-700 mb-2">Reasons</p>
-                <ul class="list-disc pl-5 text-sm text-slate-700">
-                    {% for reason in evaluation.risk.reasons %}
-                    <li>{{ reason }}</li>
-                    {% empty %}
-                    <li>No risk reasons found.</li>
-                    {% endfor %}
-                </ul>
-            </section>
+                <section class="rounded-2xl border border-slate-200 bg-white p-5">
+                    <h3 class="text-lg font-black text-slate-950 mb-4"><i class="bi bi-speedometer2 mr-2 text-teal-700"></i>Confidence</h3>
+                    <p class="text-4xl font-black text-teal-700">{{ evaluation.ocr.confidence|default:"" }}</p>
+                    <div class="mt-4 h-3 overflow-hidden rounded-full bg-slate-100">
+                        <div class="h-full rounded-full bg-teal-600" style="transform: scaleX({{ evaluation.ocr.confidence|default:0 }}); transform-origin: left;"></div>
+                    </div>
+                    <p class="mt-4 text-sm text-slate-500"><span class="font-bold">Source:</span> {{ evaluation.ocr.source|default:"" }}</p>
+                </section>
 
-            <section class="rounded-lg border {% if evaluation.decision.decision == 'accept' %}border-emerald-200 bg-emerald-50{% elif evaluation.decision.decision == 'review' %}border-orange-200 bg-orange-50{% else %}border-red-200 bg-red-50{% endif %} p-5">
-                <h2 class="text-lg font-black text-slate-900 mb-4">AI Decision</h2>
-                <div class="mb-4">
-                    <p class="text-sm font-bold text-slate-700">Decision</p>
-                    <p class="text-3xl font-black {% if evaluation.decision.decision == 'accept' %}text-emerald-700{% elif evaluation.decision.decision == 'review' %}text-orange-700{% else %}text-red-700{% endif %}">
+                <section class="rounded-2xl border {% if evaluation.risk.risk_level == 'Low' %}border-emerald-200 bg-emerald-50{% elif evaluation.risk.risk_level == 'Medium' %}border-amber-200 bg-amber-50{% else %}border-red-200 bg-red-50{% endif %} p-5">
+                    <h3 class="text-lg font-black text-slate-950 mb-4"><i class="bi bi-shield-exclamation mr-2"></i>Risk badge</h3>
+                    <span class="app-badge {% if evaluation.risk.risk_level == 'Low' %}bg-emerald-100 text-emerald-700{% elif evaluation.risk.risk_level == 'Medium' %}bg-amber-100 text-amber-700{% else %}bg-red-100 text-red-700{% endif %}">
+                        {{ evaluation.risk.risk_level }} Risk
+                    </span>
+                    <p class="mt-4 text-4xl font-black text-slate-950">{{ evaluation.risk.risk_score }}</p>
+                    <p class="text-sm font-bold text-slate-600">Risk Score</p>
+                    <ul class="mt-4 space-y-2 text-sm text-slate-700">
+                        {% for reason in evaluation.risk.reasons %}
+                        <li>{{ reason }}</li>
+                        {% empty %}
+                        <li>No risk reasons found.</li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            </div>
+
+            <div class="mt-5 grid gap-5 lg:grid-cols-2">
+                <section class="rounded-2xl border border-slate-200 bg-white p-5">
+                    <h3 class="text-lg font-black text-slate-950 mb-4"><i class="bi bi-clipboard2-pulse mr-2 text-teal-700"></i>Safety Screening</h3>
+                    <dl class="grid gap-3 text-sm text-slate-700">
+                        <div class="flex justify-between gap-4"><dt class="font-bold">Damaged Packaging</dt><dd>{% if evaluation.safety.damaged_packaging %}✓ Yes{% else %}✗ No{% endif %}</dd></div>
+                        <div class="flex justify-between gap-4"><dt class="font-bold">Tampered Seal</dt><dd>{% if evaluation.safety.tampered_seal %}✓ Yes{% else %}✗ No{% endif %}</dd></div>
+                        <div class="flex justify-between gap-4"><dt class="font-bold">Unclear Expiry</dt><dd>{% if evaluation.safety.unclear_expiry %}✓ Yes{% else %}✗ No{% endif %}</dd></div>
+                        <div class="flex justify-between gap-4"><dt class="font-bold">Suspicious Condition</dt><dd>{% if evaluation.safety.suspicious_condition %}✓ Yes{% else %}✗ No{% endif %}</dd></div>
+                        <div class="flex justify-between gap-4"><dt class="font-bold">Low Image Quality</dt><dd>{% if evaluation.safety.low_image_quality %}✓ Yes{% else %}✗ No{% endif %}</dd></div>
+                    </dl>
+                </section>
+
+                <section class="rounded-2xl border {% if evaluation.decision.decision == 'accept' %}border-emerald-200 bg-emerald-50{% elif evaluation.decision.decision == 'review' %}border-amber-200 bg-amber-50{% else %}border-red-200 bg-red-50{% endif %} p-5">
+                    <h3 class="text-lg font-black text-slate-950 mb-4"><i class="bi bi-check2-square mr-2"></i>Decision</h3>
+                    <p class="text-4xl font-black {% if evaluation.decision.decision == 'accept' %}text-emerald-700{% elif evaluation.decision.decision == 'review' %}text-amber-700{% else %}text-red-700{% endif %}">
                         {{ evaluation.decision.decision|title }}
                     </p>
-                </div>
-                <p class="text-sm text-slate-700 mb-4"><span class="font-bold">Confidence:</span> {{ evaluation.decision.confidence }}</p>
-                <p class="text-sm font-bold text-slate-700 mb-2">Reasons</p>
-                <ul class="list-disc pl-5 text-sm text-slate-700">
-                    {% for reason in evaluation.decision.reasons %}
-                    <li>{{ reason }}</li>
-                    {% empty %}
-                    <li>No decision reasons found.</li>
-                    {% endfor %}
-                </ul>
-            </section>
+                    <p class="mt-2 text-sm text-slate-700"><span class="font-bold">Confidence:</span> {{ evaluation.decision.confidence }}</p>
+                    <ul class="mt-4 space-y-2 text-sm text-slate-700">
+                        {% for reason in evaluation.decision.reasons %}
+                        <li>{{ reason }}</li>
+                        {% empty %}
+                        <li>No decision reasons found.</li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            </div>
 
             {% if explanation %}
-            <section class="rounded-lg border border-slate-200 bg-white p-5">
-                <h2 class="text-lg font-black text-slate-900 mb-2">Explanation</h2>
-                <h3 class="text-xl font-black text-slate-800 mb-3">{{ explanation.title }}</h3>
-                <p class="text-sm text-slate-700 mb-5">{{ explanation.summary }}</p>
-
-                <div class="grid gap-4">
-                    <div>
-                        <p class="text-sm font-bold text-slate-700 mb-2">Highlights</p>
-                        <ul class="list-disc pl-5 text-sm text-slate-700">
-                            {% for highlight in explanation.highlights %}
-                            <li>{{ highlight }}</li>
-                            {% empty %}
-                            <li>No highlights found.</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    <div>
-                        <p class="text-sm font-bold text-slate-700 mb-2">Positive Points</p>
-                        <ul class="list-disc pl-5 text-sm text-slate-700">
-                            {% for point in explanation.positive_points %}
-                            <li>{{ point }}</li>
-                            {% empty %}
-                            <li>No positive points found.</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    <div>
-                        <p class="text-sm font-bold text-slate-700 mb-2">Negative Points</p>
-                        <ul class="list-disc pl-5 text-sm text-slate-700">
-                            {% for point in explanation.negative_points %}
-                            <li>{{ point }}</li>
-                            {% empty %}
-                            <li>No negative points found.</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-            </section>
+            <div class="mt-5 grid gap-5 lg:grid-cols-2">
+                <section class="rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
+                    <h3 class="text-lg font-black text-emerald-800 mb-4"><i class="bi bi-check2-circle mr-2"></i>Positive findings</h3>
+                    <ul class="space-y-2 text-sm text-emerald-900">
+                        {% for point in explanation.positive_points %}
+                        <li>{{ point }}</li>
+                        {% empty %}
+                        <li>No positive points found.</li>
+                        {% endfor %}
+                    </ul>
+                </section>
+                <section class="rounded-2xl border border-amber-100 bg-amber-50 p-5">
+                    <h3 class="text-lg font-black text-amber-800 mb-4"><i class="bi bi-exclamation-triangle mr-2"></i>Warnings</h3>
+                    <ul class="space-y-2 text-sm text-amber-900">
+                        {% for point in explanation.negative_points %}
+                        <li>{{ point }}</li>
+                        {% empty %}
+                        <li>No negative points found.</li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            </div>
             {% endif %}
         </div>
         {% endif %}

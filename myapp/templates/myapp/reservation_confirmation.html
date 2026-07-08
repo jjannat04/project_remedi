@@ -1,28 +1,31 @@
 {% extends 'myapp/base.html' %}
 
 {% block content %}
-<main class="max-w-3xl mx-auto px-4 py-10">
-    <section class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+<main class="max-w-3xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+    <section class="app-card p-6 sm:p-8">
         {% if success %}
+        <div class="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-3xl text-emerald-600">
+            <i class="bi bi-check2-circle"></i>
+        </div>
         <p class="text-xs font-black uppercase tracking-widest text-emerald-600 mb-2">Reservation Successful</p>
-        <h1 class="text-3xl font-black text-slate-900 mb-6">{{ medicine.name }}</h1>
-        <div class="grid gap-3 text-sm text-slate-700">
-            <p><span class="font-bold">Reservation Expiry Time:</span> {{ reserved_until|date:"M d, Y H:i" }}</p>
-            <p><span class="font-bold">Pickup OTP:</span> <span class="text-2xl font-black text-emerald-700 tracking-widest">{{ otp }}</span></p>
-            <p class="rounded-xl bg-emerald-50 border border-emerald-100 p-4 font-semibold text-emerald-800">
-                Bring this OTP to the pharmacy to collect your medicine.
+        <h1 class="text-4xl font-black text-slate-950 mb-6">{{ medicine.name }}</h1>
+        <div class="grid gap-4 text-sm text-slate-700">
+            <p class="rounded-2xl bg-slate-50 p-4"><span class="font-bold">Reservation Expiry Time:</span> {{ reserved_until|date:"M d, Y H:i" }}</p>
+            <p class="rounded-2xl bg-emerald-50 p-4"><span class="font-bold">Collection Code:</span> <span class="block text-4xl font-black text-emerald-700 tracking-widest">{{ otp }}</span></p>
+            <p class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4 font-semibold text-emerald-800">
+                <i class="bi bi-info-circle mr-2"></i>Bring this OTP to the pharmacy to collect your medicine.
             </p>
         </div>
         {% else %}
         <p class="text-xs font-black uppercase tracking-widest text-amber-600 mb-2">Reservation Unavailable</p>
-        <h1 class="text-2xl font-black text-slate-900 mb-4">{% if medicine %}{{ medicine.name }}{% else %}Medicine{% endif %}</h1>
-        <p class="rounded-xl bg-amber-50 border border-amber-100 p-4 font-semibold text-amber-800">{{ message }}</p>
+        <h1 class="text-3xl font-black text-slate-950 mb-4">{% if medicine %}{{ medicine.name }}{% else %}Medicine{% endif %}</h1>
+        <p class="rounded-2xl bg-amber-50 border border-amber-100 p-4 font-semibold text-amber-800">{{ message }}</p>
         {% endif %}
 
         <div class="mt-6 flex gap-3">
-            <a href="{% url 'marketplace_page' %}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">Back to marketplace</a>
+            <a href="{% url 'marketplace_page' %}" class="app-btn app-btn-outline">Back to marketplace</a>
             {% if success %}
-            <a href="{% url 'profile' %}" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">View profile</a>
+            <a href="{% url 'profile' %}" class="app-btn app-btn-dark">View profile</a>
             {% endif %}
         </div>
     </section>

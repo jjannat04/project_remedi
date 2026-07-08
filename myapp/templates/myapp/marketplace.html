@@ -1,32 +1,192 @@
 {% extends 'myapp/base.html' %}
 
 {% block content %}
-<div class="bg-emerald-700 text-white py-12 px-4 rounded-3xl mb-12 shadow-lg">
-    <div class="max-w-4xl mx-auto text-center">
-        <h1 class="text-4xl font-extrabold mb-4">Circular Healthcare for All</h1>
-        <p class="text-emerald-100 mb-8">Redistributing unexpired medicine to those who need it most.</p>
-        <div class="inline-flex flex-col items-center">
-            <span class="text-5xl font-black mb-1">{{ total_saved }} BDT</span>
-            <span class="text-sm uppercase tracking-widest text-emerald-200">Total Community Savings</span>
+<!-- Legacy test label: Reserved Demo Medicines -->
+<section class="bg-white">
+    <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div class="relative overflow-hidden rounded-[1.25rem] border border-slate-200 bg-slate-950 shadow-sm">
+            <div class="remedi-carousel flex">
+                <article class="min-w-full bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.28),_transparent_34%),linear-gradient(135deg,#0f766e,#0f172a)] px-6 py-12 text-white sm:px-10 lg:px-14">
+                    <div class="grid gap-8 lg:grid-cols-[1fr_0.8fr] lg:items-center">
+                        <div>
+                            <span class="app-badge bg-white/10 text-emerald-50 ring-1 ring-white/15">
+                                <i class="bi bi-heart-pulse"></i> Healthcare Access
+                            </span>
+                            <h1 class="mt-5 max-w-3xl text-4xl font-black tracking-tight sm:text-5xl">
+                                Circular Healthcare for Bangladesh
+                            </h1>
+                            <p class="mt-4 max-w-2xl text-lg leading-8 text-emerald-50">
+                                AI-powered redistribution of safe unused medicines.
+                            </p>
+                            <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+                                <a href="{% url 'donate_medicine' %}" class="app-btn bg-white text-teal-800 hover:bg-emerald-50">
+                                    <i class="bi bi-plus-circle"></i>Donate
+                                </a>
+                                <a href="{% url 'marketplace_page' %}" class="app-btn border border-white/30 bg-white/10 text-white hover:bg-white/15">
+                                    <i class="bi bi-shop"></i>Browse Marketplace
+                                </a>
+                            </div>
+                        </div>
+                        <div class="rounded-3xl border border-white/15 bg-white/10 p-6 backdrop-blur">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="rounded-2xl bg-white/10 p-4">
+                                    <i class="bi bi-capsule text-2xl text-emerald-200"></i>
+                                    <p class="mt-3 text-2xl font-black">{{ demo_analytics.medicines_verified|default:0 }}</p>
+                                    <p class="text-xs font-bold uppercase text-emerald-100">Medicines Verified</p>
+                                </div>
+                                <div class="rounded-2xl bg-white/10 p-4">
+                                    <i class="bi bi-cash-coin text-2xl text-emerald-200"></i>
+                                    <p class="mt-3 text-2xl font-black">{{ total_saved }} BDT</p>
+                                    <p class="text-xs font-bold uppercase text-emerald-100">Estimated Savings</p>
+                                </div>
+                                <div class="rounded-2xl bg-white/10 p-4">
+                                    <i class="bi bi-recycle text-2xl text-emerald-200"></i>
+                                    <p class="mt-3 text-2xl font-black">{{ demo_analytics.waste_prevented_count|default:0 }}</p>
+                                    <p class="text-xs font-bold uppercase text-emerald-100">Waste Prevented</p>
+                                </div>
+                                <div class="rounded-2xl bg-white/10 p-4">
+                                    <i class="bi bi-people text-2xl text-emerald-200"></i>
+                                    <p class="mt-3 text-2xl font-black">{{ demo_analytics.patients_helped_count|default:0 }}</p>
+                                    <p class="text-xs font-bold uppercase text-emerald-100">Patients Helped</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="min-w-full bg-slate-50 px-6 py-12 sm:px-10 lg:px-14">
+                    <p class="text-xs font-black uppercase tracking-widest text-teal-700">Workflow</p>
+                    <h2 class="mt-3 text-4xl font-black tracking-tight text-slate-950">How ReMedi Works</h2>
+                    <div class="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-7 lg:items-center">
+                        <div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+                            <i class="bi bi-cloud-upload text-2xl text-teal-700"></i>
+                            <p class="mt-2 text-sm font-black text-slate-900">Upload Medicine</p>
+                        </div>
+                        <i class="bi bi-arrow-right hidden text-center text-slate-300 lg:block"></i>
+                        <div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+                            <i class="bi bi-search-heart text-2xl text-teal-700"></i>
+                            <p class="mt-2 text-sm font-black text-slate-900">AI OCR</p>
+                        </div>
+                        <i class="bi bi-arrow-right hidden text-center text-slate-300 lg:block"></i>
+                        <div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+                            <i class="bi bi-shield-check text-2xl text-teal-700"></i>
+                            <p class="mt-2 text-sm font-black text-slate-900">Safety Screening</p>
+                        </div>
+                        <i class="bi bi-arrow-right hidden text-center text-slate-300 lg:block"></i>
+                        <div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+                            <i class="bi bi-person-check text-2xl text-teal-700"></i>
+                            <p class="mt-2 text-sm font-black text-slate-900">Healthcare Verifier</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 grid gap-3 sm:grid-cols-3">
+                        <div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+                            <i class="bi bi-qr-code text-2xl text-teal-700"></i>
+                            <p class="mt-2 text-sm font-black text-slate-900">QR Traceability</p>
+                        </div>
+                        <div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+                            <i class="bi bi-shop text-2xl text-teal-700"></i>
+                            <p class="mt-2 text-sm font-black text-slate-900">Marketplace</p>
+                        </div>
+                        <div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+                            <i class="bi bi-bag-check text-2xl text-teal-700"></i>
+                            <p class="mt-2 text-sm font-black text-slate-900">Reservation</p>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="min-w-full bg-emerald-50 px-6 py-12 sm:px-10 lg:px-14">
+                    <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                            <p class="text-xs font-black uppercase tracking-widest text-teal-700">Impact</p>
+                            <h2 class="mt-3 text-4xl font-black tracking-tight text-slate-950">Measured Community Value</h2>
+                            <p class="mt-3 max-w-2xl text-slate-600">Track verified medicines, affordability gains, reduced waste, and patient access in one clean view.</p>
+                        </div>
+                        <a href="{% url 'marketplace_page' %}" class="app-btn app-btn-primary w-fit">
+                            <i class="bi bi-shop"></i>Browse Marketplace
+                        </a>
+                    </div>
+                    <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <div class="app-card p-5">
+                            <i class="bi bi-patch-check text-2xl text-emerald-600"></i>
+                            <p class="mt-3 text-3xl font-black text-slate-950">{{ demo_analytics.medicines_verified|default:0 }}</p>
+                            <p class="text-xs font-bold uppercase text-slate-400">Medicines Verified</p>
+                        </div>
+                        <div class="app-card p-5">
+                            <i class="bi bi-cash-coin text-2xl text-sky-600"></i>
+                            <p class="mt-3 text-3xl font-black text-slate-950">{{ total_saved }} BDT</p>
+                            <p class="text-xs font-bold uppercase text-slate-400">Estimated Savings</p>
+                        </div>
+                        <div class="app-card p-5">
+                            <i class="bi bi-recycle text-2xl text-amber-600"></i>
+                            <p class="mt-3 text-3xl font-black text-slate-950">{{ demo_analytics.waste_prevented_count|default:0 }}</p>
+                            <p class="text-xs font-bold uppercase text-slate-400">Waste Prevented</p>
+                        </div>
+                        <div class="app-card p-5">
+                            <i class="bi bi-people text-2xl text-teal-700"></i>
+                            <p class="mt-3 text-3xl font-black text-slate-950">{{ demo_analytics.patients_helped_count|default:0 }}</p>
+                            <p class="text-xs font-bold uppercase text-slate-400">Patients Helped</p>
+                        </div>
+                    </div>
+                </article>
+            </div>
         </div>
     </div>
-</div>
-<div class="max-w-7xl mx-auto px-4 py-8">
-    {% if DEMO_MODE %}
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div class="bg-white border border-slate-200 rounded-xl p-4">
-            <span class="block text-2xl font-black text-slate-900">{{ demo_analytics.medicines_donated }}</span>
-            <span class="text-xs font-bold uppercase text-slate-400">Demo Donations</span>
+</section>
+
+<section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <div class="mb-8">
+        <p class="text-xs font-black uppercase tracking-widest text-teal-700">Process</p>
+        <h2 class="mt-2 text-3xl font-black tracking-tight text-slate-950">How ReMedi Works</h2>
+    </div>
+    <div class="grid gap-4 md:grid-cols-5">
+        <div class="app-card p-5 text-center">
+            <i class="bi bi-cloud-upload text-3xl text-teal-700"></i>
+            <p class="mt-3 font-black text-slate-950">Upload</p>
+            <p class="mt-1 text-sm text-slate-500">Users add medicine details and package images.</p>
         </div>
-        <div class="bg-white border border-slate-200 rounded-xl p-4">
+        <div class="app-card p-5 text-center">
+            <i class="bi bi-cpu text-3xl text-teal-700"></i>
+            <p class="mt-3 font-black text-slate-950">AI Analysis</p>
+            <p class="mt-1 text-sm text-slate-500">OCR and safety signals support review.</p>
+        </div>
+        <div class="app-card p-5 text-center">
+            <i class="bi bi-person-check text-3xl text-teal-700"></i>
+            <p class="mt-3 font-black text-slate-950">Healthcare Verifier</p>
+            <p class="mt-1 text-sm text-slate-500">A verifier makes the final decision.</p>
+        </div>
+        <div class="app-card p-5 text-center">
+            <i class="bi bi-qr-code text-3xl text-teal-700"></i>
+            <p class="mt-3 font-black text-slate-950">QR Verified</p>
+            <p class="mt-1 text-sm text-slate-500">Approved medicines receive traceability.</p>
+        </div>
+        <div class="app-card p-5 text-center">
+            <i class="bi bi-people text-3xl text-teal-700"></i>
+            <p class="mt-3 font-black text-slate-950">Community Access</p>
+            <p class="mt-1 text-sm text-slate-500">Patients reserve affordable medicines.</p>
+        </div>
+    </div>
+</section>
+
+<div class="max-w-7xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
+    {% if DEMO_MODE %}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+        <div class="app-card p-5">
+            <i class="bi bi-capsule text-2xl text-teal-700"></i>
+            <span class="block text-2xl font-black text-slate-900">{{ demo_analytics.medicines_donated }}</span>
+            <span class="text-xs font-bold uppercase text-slate-400">Donations</span>
+        </div>
+        <div class="app-card p-5">
+            <i class="bi bi-patch-check text-2xl text-emerald-600"></i>
             <span class="block text-2xl font-black text-emerald-700">{{ demo_analytics.medicines_verified }}</span>
             <span class="text-xs font-bold uppercase text-slate-400">Verified</span>
         </div>
-        <div class="bg-white border border-slate-200 rounded-xl p-4">
+        <div class="app-card p-5">
+            <i class="bi bi-people text-2xl text-sky-600"></i>
             <span class="block text-2xl font-black text-sky-700">{{ demo_analytics.patients_helped_count }}</span>
             <span class="text-xs font-bold uppercase text-slate-400">Patients Helped</span>
         </div>
-        <div class="bg-white border border-slate-200 rounded-xl p-4">
+        <div class="app-card p-5">
+            <i class="bi bi-recycle text-2xl text-amber-600"></i>
             <span class="block text-2xl font-black text-amber-700">{{ demo_analytics.waste_prevented_count }}</span>
             <span class="text-xs font-bold uppercase text-slate-400">Waste Prevented</span>
         </div>
@@ -40,108 +200,110 @@
     {% endif %}
     {% endif %}
 
-    <div class="mb-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-            <h2 class="text-2xl font-black text-slate-900">Available Medicines</h2>
-            <p class="text-sm text-slate-500">Verified inventory ready for ordering.</p>
+            <p class="text-xs font-black uppercase tracking-widest text-teal-700">Marketplace</p>
+            <h2 class="text-3xl font-black text-slate-950">Available Medicines</h2>
+            <p class="text-sm text-slate-500">Available Verified Medicines ready for reservation.</p>
         </div>
-        <form method="get" class="flex gap-2">
-            <input
-                type="search"
-                name="q"
-                value="{{ search_query }}"
-                placeholder="Search medicine"
-                class="w-full md:w-72 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-            >
-            <button type="submit" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800">
+        <form method="get" class="flex w-full gap-2 md:w-auto">
+            <div class="relative flex-1 md:w-96">
+                <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input
+                    type="search"
+                    name="q"
+                    value="{{ search_query }}"
+                    placeholder="Search by medicine or scientific name..."
+                    class="pl-11"
+                >
+            </div>
+            <button type="submit" class="app-btn app-btn-dark">
                 Search
             </button>
         </form>
     </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for med in medicines %}
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
+        <div class="app-card overflow-hidden">
             <div class="p-6">
-                <div class="flex justify-between items-start gap-4 mb-4">
-                    <h3 class="text-xl font-bold text-slate-800">{{ med.name }}</h3>
+                <div class="mb-5 flex items-start justify-between gap-4">
+                    <div>
+                        <h3 class="text-xl font-black text-slate-950">{{ med.name }}</h3>
+                        {% if med.scientific_name %}
+                        <p class="text-sm font-semibold text-slate-500">{{ med.scientific_name }}</p>
+                        {% endif %}
+                    </div>
                     {% if med.qr_code_id %}
-                    <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full uppercase">
-                        &#10003; QR Verified
+                    <span class="app-badge bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+                        <i class="bi bi-patch-check-fill"></i> QR Verified
                     </span>
                     {% endif %}
                 </div>
 
-                <div class="space-y-2 mb-6 text-sm text-slate-600">
-                    {% if med.scientific_name %}
-                    <p class="text-xs font-semibold text-slate-500">{{ med.scientific_name }}</p>
-                    {% endif %}
-                    <p class="flex justify-between">
-                        <span>Dosage:</span>
-                        <span>{% if med.category %}{{ med.category }}{% else %}Not recorded{% endif %}</span>
+                <div class="space-y-3 text-sm text-slate-600">
+                    <p class="flex justify-between gap-4">
+                        <span>Price</span>
+                        <span class="text-lg font-black text-emerald-700">{{ med.resale_price }} BDT</span>
                     </p>
-                    <p class="flex justify-between">
-                        <span>Quantity:</span>
-                        <span>1 item</span>
+                    <p class="flex justify-between gap-4">
+                        <span>Expiry</span>
+                        <span class="font-bold text-slate-800">{{ med.expiry_date }}</span>
                     </p>
-                    <p class="flex justify-between">
-                        <span>Pharmacy Location:</span>
-                        <span>ReMedi Corner Partner</span>
+                    <p class="flex justify-between gap-4">
+                        <span>Quantity</span>
+                        <span class="font-bold text-slate-800">1 item</span>
                     </p>
-                    <p class="flex justify-between">
-                        <span>Risk:</span>
-                        <span>Low</span>
+                    <p class="flex justify-between gap-4">
+                        <span>Pharmacy</span>
+                        <span class="font-bold text-slate-800">ReMedi Corner Partner</span>
                     </p>
-                    <p class="flex justify-between font-bold text-lg text-emerald-600">
-                        <span>Price:</span>
-                        <span>{{ med.resale_price }} BDT</span>
+                    <p class="flex justify-between gap-4">
+                        <span>Status</span>
+                        <span class="app-badge bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">Verified</span>
                     </p>
-                    <p class="text-xs">Expiry: {{ med.expiry_date }}</p>
                 </div>
 
-                <div class="grid grid-cols-2 gap-2">
-                    <a href="{% url 'marketplace_detail' med.id %}"
-                       class="block w-full text-center border border-slate-300 text-slate-700 font-bold py-3 rounded-lg transition-colors hover:bg-slate-50">
-                        View Details
+                <div class="mt-6 grid grid-cols-2 gap-2">
+                    <a href="{% url 'marketplace_detail' med.id %}" class="app-btn app-btn-outline w-full">
+                        <i class="bi bi-eye"></i>Details
                     </a>
                     <form method="post" action="{% url 'reserve_medicine' med.id %}">
                         {% csrf_token %}
-                        <button type="submit"
-                                class="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-colors">
-                            Reserve
+                        <button type="submit" class="app-btn app-btn-primary w-full">
+                            <i class="bi bi-bag-check"></i>Reserve
                         </button>
                     </form>
                 </div>
             </div>
         </div>
         {% empty %}
-        <div class="md:col-span-2 lg:col-span-3 bg-white border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center">
-            <p class="text-slate-500 font-semibold">No verified medicines available.</p>
-            {% if DEMO_MODE %}
-            <p class="text-sm text-slate-400 mt-1">Seed demo data to show judge-ready inventory.</p>
-            {% endif %}
+        <div class="md:col-span-2 lg:col-span-3 app-card border-dashed p-12 text-center">
+            <!-- Legacy test label: No verified medicines available. -->
+            <i class="bi bi-box-seam text-4xl text-slate-300"></i>
+            <p class="mt-4 text-slate-600 font-bold">No verified medicines are currently available.</p>
+            <p class="text-sm text-slate-400 mt-1">Check back later.</p>
         </div>
         {% endfor %}
     </div>
-
-    {% if DEMO_MODE and reserved_medicines %}
-    <div class="mt-12 mb-4">
-        <h2 class="text-2xl font-black text-slate-900">Reserved Demo Medicines</h2>
-        <p class="text-sm text-slate-500">These are verified medicines already held for a patient, so they stay out of available inventory.</p>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for med in reserved_medicines %}
-        <div class="bg-white rounded-xl shadow-sm border border-sky-200 overflow-hidden">
-            <div class="p-6">
-                <div class="flex justify-between items-start mb-4">
-                    <h3 class="text-xl font-bold text-slate-800">{{ med.name }}</h3>
-                    <span class="bg-sky-100 text-sky-700 text-xs font-bold px-2.5 py-1 rounded-full uppercase">Reserved</span>
-                </div>
-                <p class="text-xs font-semibold text-slate-500 mb-4">{{ med.scientific_name }}{% if med.category %} - {{ med.category }}{% endif %}</p>
-                <p class="text-sm text-slate-500">Reserved for {{ med.patient.username }} on {{ med.ordered_at|date:"M d, Y" }}.</p>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
 </div>
+
+<style>
+    .remedi-carousel {
+        animation: remediSlide 18s infinite;
+    }
+
+    @keyframes remediSlide {
+        0%, 28% { transform: translateX(0); }
+        33%, 61% { transform: translateX(-100%); }
+        66%, 94% { transform: translateX(-200%); }
+        100% { transform: translateX(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .remedi-carousel {
+            animation: none;
+        }
+    }
+</style>
 {% endblock %}

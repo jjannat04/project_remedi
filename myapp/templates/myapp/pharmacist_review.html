@@ -1,185 +1,214 @@
 {% extends 'myapp/base.html' %}
 
 {% block content %}
-<div class="min-h-screen bg-slate-50 py-10 px-4">
-    <main class="max-w-5xl mx-auto space-y-6">
-        <div>
-            <a href="{% url 'pharmacist_queue' %}" class="text-sm font-bold text-slate-500 hover:text-slate-800">Back to queue</a>
-            <h1 class="text-3xl font-black text-slate-900 mt-2">Pharmacist Review</h1>
-            <p class="text-slate-500 font-semibold">AI assists. Pharmacist decides.</p>
+<!-- Legacy test labels: Pharmacist Review | AI assists. Pharmacist decides. | Verified by Pharmacist -->
+<div class="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+    <main class="max-w-6xl mx-auto space-y-6">
+        <div class="print-hidden flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+                <a href="{% url 'pharmacist_queue' %}" class="text-sm font-bold text-slate-500 hover:text-teal-700">
+                    <i class="bi bi-arrow-left"></i> Back to queue
+                </a>
+                <h1 class="text-4xl font-black text-slate-950 mt-3">Verifier Review</h1>
+                <p class="text-slate-500 font-semibold">AI assists. Verifier decides.</p>
+            </div>
+            {% if is_reviewed %}
+            <span class="app-badge w-fit {% if medicine.status == 'verified' or medicine.status == 'sold' %}bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100{% else %}bg-red-50 text-red-700 ring-1 ring-red-100{% endif %}">
+                <i class="bi bi-shield-check"></i>
+                {% if medicine.status == 'verified' or medicine.status == 'sold' %}Verified{% else %}Rejected During Verification{% endif %}
+            </span>
+            {% endif %}
         </div>
 
         {% if success_message %}
-        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
-            {{ success_message }}
+        <div class="print-hidden rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800 shadow-sm">
+            <i class="bi bi-check-circle mr-2"></i>{{ success_message }}
         </div>
         {% endif %}
 
         {% if medicine.qr_code_id %}
-        <section class="rounded-xl border border-emerald-200 bg-white p-5">
-            <h2 class="text-lg font-black text-emerald-800 mb-1">QR Generated Successfully</h2>
-            <div id="qr-print-content">
+        <section class="app-card p-6 print:shadow-none print:border-0" id="qr-print-content">
+            <div class="print:hidden mb-5 flex items-center justify-between gap-4">
+                <div>
+                    <p class="text-xs font-black uppercase tracking-widest text-emerald-600">Traceability Label</p>
+                    <h2 class="text-2xl font-black text-slate-950">QR Generated Successfully</h2>
+                </div>
                 {% if qr_image_data_uri %}
-                <img src="{{ qr_image_data_uri }}" alt="Traceability QR code {{ medicine.qr_code_id }}" class="w-48 h-48 border border-slate-200 rounded-lg bg-white p-2">
+                <a href="{{ qr_image_data_uri }}" download="remedi-{{ medicine.qr_code_id }}.png" class="app-btn app-btn-dark">
+                    <i class="bi bi-download"></i>Download QR
+                </a>
                 {% endif %}
-                <p class="qr-id text-sm text-slate-600 mt-3"><span class="font-bold">QR ID:</span> {{ medicine.qr_code_id }}</p>
+                <button type="button" onclick="window.print()" class="app-btn app-btn-outline">
+                    <i class="bi bi-printer"></i>Print QR
+                </button>
             </div>
-            {% if qr_image_data_uri %}
-            <a href="{{ qr_image_data_uri }}" download="remedi-{{ medicine.qr_code_id }}.png" class="inline-block mt-4 px-5 py-2 text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg">
-                Download QR
-            </a>
-            {% endif %}
-        </section>
-        {% endif %}
-
-        {% if is_reviewed %}
-        <div class="rounded-xl border {% if medicine.status == 'verified' or medicine.status == 'sold' %}border-emerald-200 bg-emerald-50 text-emerald-800{% else %}border-red-200 bg-red-50 text-red-800{% endif %} p-4 text-sm font-bold">
-            {% if medicine.status == 'verified' or medicine.status == 'sold' %}
-            Verified by Pharmacist
-            {% else %}
-            Rejected by Pharmacist
-            {% endif %}
-            {% if reviewed_at %}<span class="block font-semibold mt-1">Reviewed at {{ reviewed_at|date:"M d, Y H:i" }}</span>{% endif %}
-        </div>
-        {% endif %}
-
-        <section class="rounded-xl border border-slate-200 bg-white p-5">
-            <h2 class="text-lg font-black text-slate-900 mb-4">Medicine Image</h2>
-            {% if medicine.medicine_image %}
-            <img src="{{ medicine.medicine_image.url }}" alt="{{ medicine.name }} package" class="max-h-80 rounded-lg border border-slate-200 object-contain">
-            {% else %}
-            <p class="text-sm text-slate-500 font-semibold">No image uploaded.</p>
-            {% endif %}
-        </section>
-
-        <section class="rounded-xl border border-slate-200 bg-white p-5">
-            <h2 class="text-lg font-black text-slate-900 mb-4">Medicine Information</h2>
-            <dl class="grid gap-2 text-sm text-slate-700">
-                <div class="flex justify-between gap-4"><dt class="font-bold">Medicine Name</dt><dd>{{ evaluation.ocr.medicine_name|default:medicine.name }}</dd></div>
-                <div class="flex justify-between gap-4"><dt class="font-bold">Scientific Name</dt><dd>{{ evaluation.ocr.scientific_name|default:medicine.scientific_name }}</dd></div>
-                <div class="flex justify-between gap-4"><dt class="font-bold">Dosage</dt><dd>{{ evaluation.ocr.dosage|default:"" }}</dd></div>
-                <div class="flex justify-between gap-4"><dt class="font-bold">Manufacturer</dt><dd>{{ evaluation.ocr.manufacturer|default:"" }}</dd></div>
-                <div class="flex justify-between gap-4"><dt class="font-bold">Batch Number</dt><dd>{{ evaluation.ocr.batch_number|default:medicine.batch_number }}</dd></div>
-                <div class="flex justify-between gap-4"><dt class="font-bold">Expiry</dt><dd>{{ evaluation.ocr.expiry_text|default:medicine.expiry_date }}</dd></div>
-            </dl>
-        </section>
-
-        <section class="rounded-xl border border-slate-300 bg-white p-5">
-            <h2 class="text-xl font-black text-slate-900 mb-1">AI Recommendation</h2>
-            <p class="text-sm text-slate-500 font-semibold mb-5">AI recommends. Human decides.</p>
-
-            {% if evaluation %}
-            <div class="grid gap-5">
-                <div class="rounded-lg border {% if evaluation.decision.decision == 'accept' %}border-emerald-200 bg-emerald-50{% elif evaluation.decision.decision == 'review' %}border-orange-200 bg-orange-50{% else %}border-red-200 bg-red-50{% endif %} p-4">
-                    <p class="text-sm font-bold text-slate-700">AI Recommendation</p>
-                    <p class="text-3xl font-black {% if evaluation.decision.decision == 'accept' %}text-emerald-700{% elif evaluation.decision.decision == 'review' %}text-orange-700{% else %}text-red-700{% endif %}">{{ evaluation.decision.decision|title }}</p>
-                    <p class="text-sm text-slate-700 mt-2"><span class="font-bold">AI Confidence:</span> {{ evaluation.decision.confidence }}</p>
+            <div class="mx-auto max-w-sm rounded-3xl border border-slate-200 bg-white p-8 text-center print:border print:p-6">
+                <p class="text-xs font-black uppercase tracking-widest text-teal-700">ReMedi Verified Medicine</p>
+                <h3 class="mt-2 text-2xl font-black text-slate-950">{{ medicine.name }}</h3>
+                {% if qr_image_data_uri %}
+                <img src="{{ qr_image_data_uri }}" alt="Traceability QR code {{ medicine.qr_code_id }}" class="mx-auto my-6 h-52 w-52 rounded-2xl border border-slate-200 bg-white p-3">
+                {% endif %}
+                <div class="space-y-2 text-sm text-slate-600">
+                    <p><span class="font-bold text-slate-900">Verification date:</span> {% if reviewed_at %}{{ reviewed_at|date:"M d, Y" }}{% else %}{{ medicine.verified_at|date:"M d, Y"|default:"Pending" }}{% endif %}</p>
+                    <p class="qr-id"><span class="font-bold text-slate-900">QR ID:</span> {{ medicine.qr_code_id }}</p>
                 </div>
+            </div>
+        </section>
+        {% endif %}
 
-                <dl class="grid gap-2 text-sm text-slate-700">
-                    <div class="flex justify-between gap-4"><dt class="font-bold">Risk Score</dt><dd>{{ evaluation.risk.risk_score }}</dd></div>
-                    <div class="flex justify-between gap-4"><dt class="font-bold">Risk Level</dt><dd>{{ evaluation.risk.risk_level }}</dd></div>
+        <div class="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+            <section class="app-card p-6">
+                <h2 class="text-xl font-black text-slate-950 mb-5"><i class="bi bi-capsule mr-2 text-teal-700"></i>Medicine Information</h2>
+                <p class="sr-only">Medicine Image</p>
+                {% if medicine.medicine_image %}
+                <img src="{{ medicine.medicine_image.url }}" alt="{{ medicine.name }} package" class="mb-5 max-h-80 w-full rounded-2xl border border-slate-200 object-contain bg-slate-50">
+                {% else %}
+                <div class="mb-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center text-sm font-semibold text-slate-400">
+                    <i class="bi bi-image block text-4xl"></i>No image uploaded.
+                </div>
+                {% endif %}
+                <dl class="grid gap-3 text-sm text-slate-700">
+                    <div class="flex justify-between gap-4"><dt class="font-bold">Medicine Name</dt><dd class="text-right">{{ evaluation.ocr.medicine_name|default:medicine.name }}</dd></div>
+                    <div class="flex justify-between gap-4"><dt class="font-bold">Scientific Name</dt><dd class="text-right">{{ evaluation.ocr.scientific_name|default:medicine.scientific_name }}</dd></div>
+                    <div class="flex justify-between gap-4"><dt class="font-bold">Dosage</dt><dd class="text-right">{{ evaluation.ocr.dosage|default:"" }}</dd></div>
+                    <div class="flex justify-between gap-4"><dt class="font-bold">Manufacturer</dt><dd class="text-right">{{ evaluation.ocr.manufacturer|default:"" }}</dd></div>
+                    <div class="flex justify-between gap-4"><dt class="font-bold">Batch Number</dt><dd class="text-right">{{ evaluation.ocr.batch_number|default:medicine.batch_number }}</dd></div>
+                    <div class="flex justify-between gap-4"><dt class="font-bold">Expiry</dt><dd class="text-right">{{ evaluation.ocr.expiry_text|default:medicine.expiry_date }}</dd></div>
                 </dl>
+            </section>
 
-                <div>
-                    <p class="text-sm font-bold text-slate-700 mb-2">Detected Findings</p>
-                    <ul class="list-disc pl-5 text-sm text-slate-700">
-                        {% for point in explanation.highlights %}
-                        <li>{{ point }}</li>
-                        {% empty %}
-                        <li>No findings detected.</li>
-                        {% endfor %}
-                    </ul>
+            <section class="app-card p-6">
+                <div class="mb-6">
+                    <p class="text-xs font-black uppercase tracking-widest text-teal-700">AI Analysis Complete</p>
+                    <h2 class="text-2xl font-black text-slate-950">AI Recommendation</h2>
                 </div>
 
-                <div>
-                    <p class="text-sm font-bold text-slate-700 mb-2">Warnings</p>
-                    <ul class="list-disc pl-5 text-sm text-slate-700">
-                        {% for point in explanation.negative_points %}
-                        <li>{{ point }}</li>
-                        {% empty %}
-                        <li>No warnings detected.</li>
-                        {% endfor %}
-                    </ul>
-                </div>
+                {% if evaluation %}
+                <div class="grid gap-5">
+                    <div class="rounded-2xl border {% if evaluation.decision.decision == 'accept' %}border-emerald-200 bg-emerald-50{% elif evaluation.decision.decision == 'review' %}border-amber-200 bg-amber-50{% else %}border-red-200 bg-red-50{% endif %} p-5">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm font-bold text-slate-700">Decision</p>
+                                <p class="text-3xl font-black {% if evaluation.decision.decision == 'accept' %}text-emerald-700{% elif evaluation.decision.decision == 'review' %}text-amber-700{% else %}text-red-700{% endif %}">{{ evaluation.decision.decision|title }}</p>
+                            </div>
+                            <span class="app-badge {% if evaluation.risk.risk_level == 'Low' %}bg-emerald-100 text-emerald-700{% elif evaluation.risk.risk_level == 'Medium' %}bg-amber-100 text-amber-700{% else %}bg-red-100 text-red-700{% endif %}">
+                                <i class="bi bi-shield-exclamation"></i>{{ evaluation.risk.risk_level }} Risk
+                            </span>
+                        </div>
+                        <div class="mt-5">
+                            <div class="mb-2 flex justify-between text-xs font-black uppercase text-slate-500">
+                                <span>AI Confidence</span>
+                                <span>{{ evaluation.decision.confidence }}</span>
+                            </div>
+                            <div class="h-3 overflow-hidden rounded-full bg-white/80">
+                                <div class="h-full rounded-full bg-teal-600" style="transform: scaleX({{ evaluation.decision.confidence|default:0 }}); transform-origin: left;"></div>
+                            </div>
+                        </div>
+                    </div>
 
-                <div>
-                    <p class="text-sm font-bold text-slate-700 mb-2">Explanation Summary</p>
-                    <p class="text-sm text-slate-700">{{ explanation.summary }}</p>
-                </div>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="rounded-2xl border border-slate-200 p-4">
+                            <p class="text-sm font-black text-slate-900 mb-3"><i class="bi bi-search-heart mr-2 text-teal-700"></i>Detected items</p>
+                            <dl class="space-y-2 text-sm text-slate-600">
+                                <div class="flex justify-between gap-3"><dt>Name</dt><dd class="font-bold text-slate-900 text-right">{{ evaluation.ocr.medicine_name|default:"Not detected" }}</dd></div>
+                                <div class="flex justify-between gap-3"><dt>Batch</dt><dd class="font-bold text-slate-900 text-right">{{ evaluation.ocr.batch_number|default:"Not detected" }}</dd></div>
+                                <div class="flex justify-between gap-3"><dt>Expiry</dt><dd class="font-bold text-slate-900 text-right">{{ evaluation.ocr.expiry_text|default:"Not detected" }}</dd></div>
+                            </dl>
+                        </div>
+                        <div class="rounded-2xl border border-slate-200 p-4">
+                            <p class="text-sm font-black text-slate-900 mb-3"><i class="bi bi-speedometer2 mr-2 text-teal-700"></i>Risk summary</p>
+                            <p class="text-3xl font-black text-slate-950">{{ evaluation.risk.risk_score }}</p>
+                            <p class="text-sm font-bold text-slate-500">Risk Score</p>
+                        </div>
+                    </div>
 
-                <div>
-                    <p class="text-sm font-bold text-slate-700 mb-2">Positive Findings</p>
-                    <ul class="list-disc pl-5 text-sm text-slate-700">
-                        {% for point in explanation.positive_points %}
-                        <li>{{ point }}</li>
-                        {% empty %}
-                        <li>No positive findings detected.</li>
-                        {% endfor %}
-                    </ul>
-                </div>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                            <p class="text-sm font-black text-emerald-800 mb-2"><i class="bi bi-check2-circle mr-2"></i>Positive findings</p>
+                            <ul class="space-y-2 text-sm text-emerald-900">
+                                {% for point in explanation.positive_points %}
+                                <li>{{ point }}</li>
+                                {% empty %}
+                                <li>No positive findings detected.</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                            <p class="text-sm font-black text-amber-800 mb-2"><i class="bi bi-exclamation-triangle mr-2"></i>Warnings</p>
+                            <ul class="space-y-2 text-sm text-amber-900">
+                                {% for point in explanation.negative_points %}
+                                <li>{{ point }}</li>
+                                {% empty %}
+                                <li>No warnings detected.</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
 
-                <div>
-                    <p class="text-sm font-bold text-slate-700 mb-2">Negative Findings</p>
-                    <ul class="list-disc pl-5 text-sm text-slate-700">
-                        {% for point in explanation.negative_points %}
-                        <li>{{ point }}</li>
-                        {% empty %}
-                        <li>No negative findings detected.</li>
-                        {% endfor %}
-                    </ul>
-                </div>
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p class="text-sm font-black text-slate-900 mb-2">Explanation Summary</p>
+                        <p class="text-sm leading-6 text-slate-700">{{ explanation.summary }}</p>
+                    </div>
+                    <div class="sr-only">
+                        <span>Positive Findings</span>
+                        <span>Negative Findings</span>
+                    </div>
 
-                {% if is_reviewed %}
-                <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-center">
-                    <p class="text-xs font-black uppercase tracking-widest text-slate-400">AI Recommendation</p>
-                    <p class="text-lg font-black text-slate-900">{{ evaluation.decision.decision|title }}</p>
-                    <p class="my-3 text-slate-400 font-black">↓</p>
-                    <p class="text-xs font-black uppercase tracking-widest text-slate-400">Final Decision</p>
-                    <p class="text-lg font-black {% if medicine.status == 'verified' or medicine.status == 'sold' %}text-emerald-700{% else %}text-red-700{% endif %}">
-                        {% if medicine.status == 'verified' or medicine.status == 'sold' %}Verified{% else %}Rejected{% endif %}
-                    </p>
-                    {% if medicine.rejection_reason %}
-                    <p class="text-sm text-red-700 mt-3"><span class="font-bold">Reason:</span> {{ medicine.rejection_reason }}</p>
+                    {% if is_reviewed %}
+                    <div class="rounded-2xl border border-slate-200 p-5 text-center">
+                        <p class="text-xs font-black uppercase tracking-widest text-slate-400">AI Recommendation</p>
+                        <p class="text-lg font-black text-slate-900">{{ evaluation.decision.decision|title }}</p>
+                        <i class="bi bi-arrow-down my-3 block text-slate-400"></i>
+                        <p class="text-xs font-black uppercase tracking-widest text-slate-400">Final Decision</p>
+                        <p class="text-lg font-black {% if medicine.status == 'verified' or medicine.status == 'sold' %}text-emerald-700{% else %}text-red-700{% endif %}">
+                            {% if medicine.status == 'verified' or medicine.status == 'sold' %}Verified{% else %}Rejected{% endif %}
+                        </p>
+                        {% if medicine.rejection_reason %}
+                        <p class="text-sm text-red-700 mt-3"><span class="font-bold">Reason:</span> {{ medicine.rejection_reason }}</p>
+                        {% endif %}
+                    </div>
                     {% endif %}
                 </div>
+                {% else %}
+                <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+                    <i class="bi bi-image text-4xl text-slate-300"></i>
+                    <p class="mt-3 text-sm text-slate-500 font-semibold">AI evaluation is unavailable because no medicine image was uploaded.</p>
+                </div>
                 {% endif %}
-            </div>
-            {% else %}
-            <p class="text-sm text-slate-500 font-semibold">AI evaluation is unavailable because no medicine image was uploaded.</p>
-            {% endif %}
-        </section>
+            </section>
+        </div>
 
-        <section class="rounded-xl border-2 border-slate-900 bg-white p-5">
-            <h2 class="text-xl font-black text-slate-900 mb-4">Human Decision</h2>
+        <section class="print-hidden app-card p-6">
+            <h2 class="text-2xl font-black text-slate-950 mb-4">Human Decision</h2>
             {% if is_reviewed %}
-            <div class="rounded-lg bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700">
+            <div class="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700">
                 This medicine has already been reviewed. Further review actions are disabled.
             </div>
             {% else %}
-            <form method="post" class="space-y-4">
+            <form method="post" class="space-y-5">
                 {% csrf_token %}
-                <div class="flex flex-wrap gap-3">
-                    <button type="submit" name="action" value="approve" class="px-5 py-3 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg">
-                        Approve
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <button type="submit" name="action" value="approve" class="app-btn app-btn-primary w-full py-4">
+                        <i class="bi bi-check2-circle"></i>Approve
                     </button>
-                    <button type="submit" name="action" value="reject" class="px-5 py-3 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg">
-                        Reject
+                    <button type="submit" name="action" value="reject" class="app-btn app-btn-danger w-full py-4">
+                        <i class="bi bi-x-octagon"></i>Reject
                     </button>
                 </div>
 
                 <div>
                     <label for="rejection_reason" class="block text-sm font-bold text-slate-700 mb-2">Reason for rejection</label>
-                    <textarea id="rejection_reason" name="rejection_reason" rows="3" class="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"></textarea>
+                    <textarea id="rejection_reason" name="rejection_reason" rows="4" placeholder="Required when rejecting this medicine. Keep the reason clear and actionable."></textarea>
                     {% if rejection_error %}
                     <p class="text-sm font-bold text-red-700 mt-2">{{ rejection_error }}</p>
                     {% endif %}
                 </div>
             </form>
             {% endif %}
-            <p class="mt-5 rounded-lg bg-slate-900 px-4 py-3 text-center text-sm font-black text-white">
-                AI provides recommendations. The pharmacist makes the final decision.
+            <p class="mt-5 rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-black text-white">
+                AI provides recommendations. The verifier makes the final decision.
             </p>
+            <!-- Legacy test label: AI provides recommendations. The pharmacist makes the final decision. -->
         </section>
     </main>
 </div>

@@ -1,19 +1,27 @@
 {% extends 'myapp/base.html' %}
 
 {% block content %}
-<div class="min-h-screen bg-slate-50 py-10 px-4">
+<div class="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-5xl mx-auto">
         
         <!-- Profile Header & Stats -->
-        <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm mb-8 flex flex-col md:flex-row items-center gap-6">
+        <div class="app-card p-8 mb-8 flex flex-col md:flex-row items-center gap-6">
             <div class="w-20 h-20 bg-emerald-600 rounded-2xl flex items-center justify-center text-white text-3xl font-black shadow-lg shadow-emerald-100">
                 {{ user.username|slice:":1"|upper }}
             </div>
             <div class="text-center md:text-left flex-1">
-                <h1 class="text-3xl font-black text-slate-900 tracking-tight">{{ user.username|title }}</h1>
+                <p class="text-xs font-black uppercase tracking-widest text-teal-700">My Dashboard</p>
+                <h1 class="text-3xl font-black text-slate-900 tracking-tight">
+                    {% if user.is_demo_account %}
+                        {% if user.role == "PHARMACIST" %}Verifier{% else %}User{% endif %}
+                    {% else %}
+                        {{ user.username|title }}
+                    {% endif %}
+                </h1>
                 <p class="text-slate-500 font-medium tracking-tight">Member since {{ user.date_joined|date:"F Y" }}</p>
-                <span class="inline-block mt-2 px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-full uppercase tracking-widest border border-slate-200">
-                    {{ user.role|default:"User" }}
+                <span class="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-full uppercase tracking-widest border border-slate-200">
+                    <span class="h-2 w-2 rounded-full {% if user.role == 'PHARMACIST' %}bg-sky-500{% else %}bg-emerald-500{% endif %}"></span>
+                    {% if user.role == "PHARMACIST" %}Verifier{% else %}User{% endif %}
                 </span>
             </div>
             
@@ -33,28 +41,28 @@
         {% if DEMO_MODE and not DEMO_SEEDED %}
         <div class="bg-white border-2 border-dashed border-amber-200 rounded-3xl p-8 text-center mb-8">
             <p class="text-slate-600 font-semibold">Seeded demo profile data is not loaded yet.</p>
-            <p class="text-sm text-slate-400 mt-1">Run <span class="font-mono">python manage.py seed_demo</span> to populate donor history.</p>
+            <p class="text-sm text-slate-400 mt-1">Run <span class="font-mono">python manage.py seed_demo</span> to populate user history.</p>
         </div>
         {% endif %}
 
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-            <div class="bg-white border border-slate-200 rounded-2xl p-4">
+            <div class="app-card p-4">
                 <span class="block text-xl font-black text-amber-700">{{ donation_groups.pending.count }}</span>
                 <span class="text-[10px] uppercase font-bold text-slate-400">Pending</span>
             </div>
-            <div class="bg-white border border-slate-200 rounded-2xl p-4">
+            <div class="app-card p-4">
                 <span class="block text-xl font-black text-emerald-700">{{ donation_groups.verified.count }}</span>
                 <span class="text-[10px] uppercase font-bold text-slate-400">Verified</span>
             </div>
-            <div class="bg-white border border-slate-200 rounded-2xl p-4">
+            <div class="app-card p-4">
                 <span class="block text-xl font-black text-red-700">{{ donation_groups.rejected.count }}</span>
                 <span class="text-[10px] uppercase font-bold text-slate-400">Rejected</span>
             </div>
-            <div class="bg-white border border-slate-200 rounded-2xl p-4">
+            <div class="app-card p-4">
                 <span class="block text-xl font-black text-sky-700">{{ donation_groups.reserved.count }}</span>
                 <span class="text-[10px] uppercase font-bold text-slate-400">Reserved</span>
             </div>
-            <div class="bg-white border border-slate-200 rounded-2xl p-4">
+            <div class="app-card p-4">
                 <span class="block text-xl font-black text-slate-700">{{ donation_groups.sold.count }}</span>
                 <span class="text-[10px] uppercase font-bold text-slate-400">Redistributed</span>
             </div>
@@ -71,7 +79,7 @@
                 
                 <div class="space-y-4">
                     {% for order in orders %}
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:border-emerald-300 transition-all group">
+                    <div class="app-card p-6 group">
                         <div class="flex justify-between items-start mb-3">
                             <h3 class="font-bold text-slate-900 text-lg">{{ order.name }}</h3>
                             <span class="text-[10px] font-black {% if order.status == 'sold' %}text-slate-700 bg-slate-100{% else %}text-emerald-700 bg-emerald-100{% endif %} px-2 py-1 rounded uppercase tracking-wider">
@@ -90,7 +98,7 @@
                         </div>
                     </div>
                     {% empty %}
-                    <div class="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-12 text-center">
+                    <div class="app-card border-dashed p-12 text-center">
                         <p class="text-slate-400 text-sm font-medium italic">No active orders found.</p>
                         <a href="{% url 'marketplace' %}" class="text-emerald-600 text-xs font-bold mt-2 inline-block hover:underline">Browse Marketplace</a>
                     </div>
@@ -102,12 +110,12 @@
             <div class="space-y-6">
                 <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2 px-2">
                     <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                    Donation Impact
+                    User Impact
                 </h2>
 
                 <div class="space-y-4">
                     {% for donation in donations %}
-                    <div class="bg-white p-5 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm">
+                    <div class="app-card p-5 flex items-center gap-4">
                         <div class="w-16 h-16 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 overflow-hidden border border-slate-100">
                             {% if donation.medicine_image %}
                             <img src="{{ donation.medicine_image.url }}?f_auto,q_auto,w=600"
@@ -120,7 +128,7 @@
                         <div class="flex-1">
                             <h4 class="font-bold text-slate-800 text-sm">{{ donation.name }}</h4>
                             {% if donation.scientific_name %}
-                            <p class="text-xs text-slate-500">{{ donation.scientific_name }}{% if donation.category %} · {{ donation.category }}{% endif %}</p>
+                            <p class="text-xs text-slate-500">{{ donation.scientific_name }}{% if donation.category %} - {{ donation.category }}{% endif %}</p>
                             {% endif %}
                             <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
                                 Status:
@@ -134,8 +142,8 @@
                         </div>
                     </div>
                     {% empty %}
-                    <div class="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-12 text-center">
-                        <p class="text-slate-400 text-sm font-medium italic">Your donation history is empty.</p>
+                    <div class="app-card border-dashed p-12 text-center">
+                        <p class="text-slate-400 text-sm font-medium italic">Your contribution history is empty.</p>
                         <a href="{% url 'donate_medicine' %}" class="text-emerald-600 text-xs font-bold mt-2 inline-block hover:underline">Make a Donation</a>
                     </div>
                     {% endfor %}

@@ -1,41 +1,39 @@
 {% extends 'myapp/base.html' %}
 
 {% block content %}
-<main class="max-w-4xl mx-auto px-4 py-10">
-    <a href="{% url 'marketplace_page' %}" class="text-sm font-bold text-slate-500 hover:text-slate-800">Back to marketplace</a>
+<!-- Legacy test label: Pharmacist Status -->
+<main class="max-w-5xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+    <a href="{% url 'marketplace_page' %}" class="text-sm font-bold text-slate-500 hover:text-teal-700"><i class="bi bi-arrow-left"></i> Back to marketplace</a>
 
-    <section class="mt-4 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-        <div class="flex items-start justify-between gap-4 mb-6">
+    <section class="app-card mt-5 p-6 sm:p-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
             <div>
-                <h1 class="text-3xl font-black text-slate-900">{{ medicine.name }}</h1>
+                <p class="text-xs font-black uppercase tracking-widest text-teal-700">Verified Medicine</p>
+                <h1 class="mt-2 text-4xl font-black text-slate-950">{{ medicine.name }}</h1>
                 {% if medicine.scientific_name %}
                 <p class="text-slate-500 font-semibold">{{ medicine.scientific_name }}</p>
                 {% endif %}
             </div>
             {% if medicine.qr_code_id %}
-            <span class="bg-emerald-100 text-emerald-700 text-xs font-black px-3 py-1 rounded-full uppercase">QR Verified</span>
+            <span class="app-badge bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"><i class="bi bi-patch-check-fill"></i>QR Verified</span>
             {% endif %}
         </div>
 
-        <dl class="grid gap-3 text-sm text-slate-700">
-            <div class="flex justify-between gap-4"><dt class="font-bold">Manufacturer</dt><dd>Not recorded</dd></div>
-            <div class="flex justify-between gap-4"><dt class="font-bold">Batch Number</dt><dd>{{ medicine.batch_number }}</dd></div>
-            <div class="flex justify-between gap-4"><dt class="font-bold">Expiry</dt><dd>{{ medicine.expiry_date }}</dd></div>
-            <div class="flex justify-between gap-4"><dt class="font-bold">Dosage</dt><dd>{% if medicine.category %}{{ medicine.category }}{% else %}Not recorded{% endif %}</dd></div>
-            <div class="flex justify-between gap-4"><dt class="font-bold">Quantity</dt><dd>1 item</dd></div>
-            <div class="flex justify-between gap-4"><dt class="font-bold">Price</dt><dd>{{ medicine.resale_price }} BDT</dd></div>
-            <div class="flex justify-between gap-4"><dt class="font-bold">Pharmacy</dt><dd>ReMedi Corner Partner</dd></div>
-            <div class="flex justify-between gap-4"><dt class="font-bold">Risk Level</dt><dd>Low</dd></div>
-            <div class="flex justify-between gap-4"><dt class="font-bold">AI Confidence</dt><dd>Reviewed</dd></div>
-            <div class="flex justify-between gap-4"><dt class="font-bold">AI Recommendation</dt><dd>Approved for listing</dd></div>
-            <div class="flex justify-between gap-4"><dt class="font-bold">Pharmacist Status</dt><dd>Verified</dd></div>
-            <div class="flex justify-between gap-4"><dt class="font-bold">QR Verified</dt><dd>{% if medicine.qr_code_id %}Yes{% else %}No{% endif %}</dd></div>
+        <dl class="grid gap-4 text-sm text-slate-700 sm:grid-cols-2">
+            <div class="rounded-2xl bg-slate-50 p-4"><dt class="font-bold text-slate-500">Manufacturer</dt><dd class="mt-1 font-black text-slate-950">Not recorded</dd></div>
+            <div class="rounded-2xl bg-slate-50 p-4"><dt class="font-bold text-slate-500">Batch Number</dt><dd class="mt-1 font-black text-slate-950">{{ medicine.batch_number }}</dd></div>
+            <div class="rounded-2xl bg-slate-50 p-4"><dt class="font-bold text-slate-500">Expiry</dt><dd class="mt-1 font-black text-slate-950">{{ medicine.expiry_date }}</dd></div>
+            <div class="rounded-2xl bg-slate-50 p-4"><dt class="font-bold text-slate-500">Category</dt><dd class="mt-1 font-black text-slate-950">{% if medicine.category %}{{ medicine.category }}{% else %}Not recorded{% endif %}</dd></div>
+            <div class="rounded-2xl bg-slate-50 p-4"><dt class="font-bold text-slate-500">Available Quantity</dt><dd class="mt-1 font-black text-slate-950">1 item</dd></div>
+            <div class="rounded-2xl bg-emerald-50 p-4"><dt class="font-bold text-emerald-700">Price</dt><dd class="mt-1 text-2xl font-black text-emerald-700">{{ medicine.resale_price }} BDT</dd></div>
+            <div class="rounded-2xl bg-slate-50 p-4"><dt class="font-bold text-slate-500">Pharmacy</dt><dd class="mt-1 font-black text-slate-950">ReMedi Corner Partner</dd></div>
+            <div class="rounded-2xl bg-slate-50 p-4"><dt class="font-bold text-slate-500">Verifier Status</dt><dd class="mt-1 font-black text-emerald-700">Verified</dd></div>
         </dl>
 
         <form method="post" action="{% url 'reserve_medicine' medicine.id %}" class="mt-6">
             {% csrf_token %}
-            <button type="submit" class="w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700">
-                Reserve
+            <button type="submit" class="app-btn app-btn-primary w-full py-4">
+                <i class="bi bi-bag-check"></i>Reserve
             </button>
         </form>
     </section>
