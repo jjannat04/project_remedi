@@ -4,21 +4,26 @@ from myapp.services.demo_data import seed_demo_dataset
 
 
 class Command(BaseCommand):
-    help = "Seed deterministic demo accounts, medicines, and analytics foundation."
+    help = "Seed deterministic demo accounts, medicines, reservations, QR codes, and analytics foundation."
 
     def handle(self, *args, **options):
         dataset = seed_demo_dataset()
 
         self.stdout.write("Demo accounts:")
         for kind, (user, created) in dataset["users"].items():
-            action = "created" if created else "updated"
+            action = "created" if created else "already exists, refreshed"
             self.stdout.write(
-                f"- {action}: {kind} ({user.email}, role={user.role}, is_demo_account={user.is_demo_account})"
+                f"- {action}: {kind} ({user.email}, role={user.role}, password=remedi4567)"
             )
+
+        self.stdout.write("Demo pickup locations:")
+        for _kind, (corner, created) in dataset["corners"].items():
+            action = "created" if created else "already exists, refreshed"
+            self.stdout.write(f"- {action}: {corner.name} ({corner.city})")
 
         self.stdout.write("Demo medicines:")
         for kind, (medicine, created) in dataset["medicines"].items():
-            action = "created" if created else "updated"
+            action = "created" if created else "already exists, refreshed"
             reserved = " reserved" if medicine.status == "verified" and medicine.patient_id else ""
             self.stdout.write(
                 f"- {action}: {kind} ({medicine.name}, batch={medicine.batch_number}, status={medicine.status}{reserved})"
@@ -34,4 +39,15 @@ class Command(BaseCommand):
         self.stdout.write(f"- waste prevented count: {analytics['waste_prevented_count']}")
         self.stdout.write(f"- patients helped count: {analytics['patients_helped_count']}")
 
-        self.stdout.write(self.style.SUCCESS("Demo seed complete. No AI, OCR, QR generation, OTP, uploads, or external services used."))
+        summary = dataset["summary"]
+        self.stdout.write("Demo dataset summary:")
+        self.stdout.write(f"- regular users: {summary['regular_users']}")
+        self.stdout.write(f"- licensed pharmacists: {summary['pharmacists']}")
+        self.stdout.write(f"- medicines: {summary['medicines']}")
+        self.stdout.write(f"- marketplace listings: {summary['marketplace_listings']}")
+        self.stdout.write(f"- reservations: {summary['reservations']}")
+        self.stdout.write(f"- active reservations: {summary['active_reservations']}")
+        self.stdout.write(f"- QR codes generated: {summary['qr_codes']}")
+        self.stdout.write(f"- pickup locations: {summary['corners']}")
+
+        self.stdout.write(self.style.SUCCESS("Demo seed complete. Safe to run again; existing demo rows are refreshed, not duplicated."))

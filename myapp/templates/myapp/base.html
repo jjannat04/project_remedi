@@ -257,7 +257,7 @@
                         {% elif user.is_authenticated %}
                             <a href="{% url 'marketplace' %}" class="nav-link {% if current == 'marketplace' or current == 'marketplace_page' or current == 'marketplace_detail' %}nav-link-active{% endif %}"><i class="bi bi-shop"></i>Marketplace</a>
                             <a href="{% url 'donate_medicine' %}" class="nav-link {% if current == 'donate_medicine' %}nav-link-active{% endif %}"><i class="bi bi-heart-pulse"></i>Donate</a>
-                            <a href="{% url 'profile' %}" class="nav-link {% if current == 'profile' %}nav-link-active{% endif %}"><i class="bi bi-person-circle"></i>Dashboard / Profile</a>
+                            <a href="{% url 'profile' %}" class="nav-link {% if current == 'profile' %}nav-link-active{% endif %}"><i class="bi bi-person-circle"></i>Profile</a>
                         {% else %}
                             <a href="{% url 'marketplace' %}" class="nav-link {% if current == 'marketplace' or current == 'marketplace_page' or current == 'marketplace_detail' %}nav-link-active{% endif %}"><i class="bi bi-shop"></i>Marketplace</a>
                             <a href="{% url 'donate_medicine' %}" class="nav-link {% if current == 'donate_medicine' %}nav-link-active{% endif %}"><i class="bi bi-heart-pulse"></i>Donate</a>

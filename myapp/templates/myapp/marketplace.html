@@ -5,8 +5,8 @@
 <section class="bg-white">
     <div class="app-shell py-10">
         <div class="relative overflow-hidden rounded-[1.35rem] border border-slate-200 bg-slate-950 shadow-xl shadow-slate-200/70">
-            <div class="remedi-carousel flex">
-                <article class="min-w-full px-6 py-12 text-white sm:px-10 lg:px-14">
+            <div class="remedi-carousel flex" id="hero-carousel" data-carousel-index="0">
+                <article class="hero-slide px-6 py-12 text-white sm:px-10 lg:px-14">
                     <div class="grid gap-8 lg:grid-cols-[1fr_0.78fr] lg:items-center">
                         <div>
                             <span class="app-badge bg-white/10 text-emerald-50 ring-1 ring-white/15">
@@ -38,7 +38,7 @@
                     </div>
                 </article>
 
-                <article class="min-w-full px-6 py-12 text-white sm:px-10 lg:px-14">
+                <article class="hero-slide px-6 py-12 text-white sm:px-10 lg:px-14">
                     <div class="grid gap-8 lg:grid-cols-[1fr_0.78fr] lg:items-center">
                         <div>
                             <span class="app-badge bg-white/10 text-sky-50 ring-1 ring-white/15">
@@ -72,7 +72,7 @@
                     </div>
                 </article>
 
-                <article class="min-w-full px-6 py-12 text-white sm:px-10 lg:px-14">
+                <article class="hero-slide px-6 py-12 text-white sm:px-10 lg:px-14">
                     <div class="grid gap-8 lg:grid-cols-[1fr_0.78fr] lg:items-center">
                         <div>
                             <span class="app-badge bg-white/10 text-emerald-50 ring-1 ring-white/15">
@@ -104,10 +104,10 @@
                     </div>
                 </article>
             </div>
-            <div class="absolute bottom-5 left-1/2 flex -translate-x-1/2 gap-2">
-                <span class="h-2 w-8 rounded-full bg-white"></span>
-                <span class="h-2 w-2 rounded-full bg-white/50"></span>
-                <span class="h-2 w-2 rounded-full bg-white/50"></span>
+            <div class="absolute bottom-5 left-1/2 flex -translate-x-1/2 gap-2" aria-label="Hero carousel progress">
+                <button type="button" class="hero-dot h-2 w-8 rounded-full bg-white transition-all" aria-label="Show Reduce Medicine Waste slide" data-slide="0"></button>
+                <button type="button" class="hero-dot h-2 w-2 rounded-full bg-white/50 transition-all" aria-label="Show AI-Powered Verification slide" data-slide="1"></button>
+                <button type="button" class="hero-dot h-2 w-2 rounded-full bg-white/50 transition-all" aria-label="Show Affordable Healthcare slide" data-slide="2"></button>
             </div>
         </div>
     </div>
@@ -268,7 +268,14 @@
             radial-gradient(circle at 88% 10%, rgba(16, 185, 129, 0.32), transparent 28rem),
             radial-gradient(circle at 5% 90%, rgba(14, 165, 233, 0.22), transparent 24rem),
             linear-gradient(135deg, #0f766e, #0f172a 58%, #075985);
-        animation: remediSlide 18s infinite;
+        transform: translateX(0);
+        transition: transform 700ms ease-in-out;
+        will-change: transform;
+    }
+
+    .hero-slide {
+        flex: 0 0 100%;
+        min-width: 100%;
     }
 
     .hero-panel {
@@ -291,15 +298,54 @@
     .hero-panel-blue > i { color: rgba(186, 230, 253, 0.95); }
     .hero-panel-green > i { color: rgba(167, 243, 208, 0.95); }
 
-    @keyframes remediSlide {
-        0%, 28% { transform: translateX(0); }
-        33%, 61% { transform: translateX(-100%); }
-        66%, 94% { transform: translateX(-200%); }
-        100% { transform: translateX(0); }
-    }
-
     @media (prefers-reduced-motion: reduce) {
-        .remedi-carousel { animation: none; }
+        .remedi-carousel { transition: none; }
     }
 </style>
+<script>
+    (function () {
+        const carousel = document.getElementById("hero-carousel");
+        if (!carousel) {
+            return;
+        }
+
+        const slides = carousel.querySelectorAll(".hero-slide");
+        const dots = document.querySelectorAll(".hero-dot");
+        const totalSlides = slides.length;
+        let currentIndex = 0;
+        let timerId = null;
+
+        function renderSlide(index) {
+            currentIndex = (index + totalSlides) % totalSlides;
+            carousel.dataset.carouselIndex = String(currentIndex);
+            carousel.style.transform = "translateX(-" + (currentIndex * 100) + "%)";
+
+            dots.forEach(function (dot, dotIndex) {
+                const active = dotIndex === currentIndex;
+                dot.classList.toggle("w-8", active);
+                dot.classList.toggle("w-2", !active);
+                dot.classList.toggle("bg-white", active);
+                dot.classList.toggle("bg-white/50", !active);
+                dot.setAttribute("aria-current", active ? "true" : "false");
+            });
+        }
+
+        function startAutoplay() {
+            window.clearInterval(timerId);
+            timerId = window.setInterval(function () {
+                renderSlide(currentIndex + 1);
+            }, 4000);
+        }
+
+        dots.forEach(function (dot) {
+            dot.addEventListener("click", function () {
+                renderSlide(Number(dot.dataset.slide || 0));
+                startAutoplay();
+            });
+        });
+
+        renderSlide(0);
+        startAutoplay();
+    })();
+</script>
 {% endblock %}

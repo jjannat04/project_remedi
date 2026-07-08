@@ -15,7 +15,7 @@ from io import BytesIO
 from pathlib import Path
 from unittest.mock import Mock, call, patch
 
-from .models import Medicine, User
+from .models import Medicine, ReMediCorner, User
 from .services.ai import (
     MISSING_API_KEY_MESSAGE,
     OCR_SPACE_AFTER_GEMINI_MESSAGE,
@@ -107,19 +107,41 @@ class SeedDemoCommandTests(TestCase):
         self.assertTrue(pharmacist.is_active)
 
         demo_medicines = Medicine.objects.filter(batch_number__startswith=DEMO_BATCH_PREFIX)
-        self.assertEqual(demo_medicines.count(), 7)
-        self.assertEqual(demo_medicines.filter(status="pending").count(), 1)
-        self.assertGreaterEqual(demo_medicines.filter(status="verified", patient__isnull=True).count(), 3)
-        self.assertEqual(demo_medicines.filter(status="rejected").count(), 1)
-        self.assertEqual(demo_medicines.filter(status="verified", patient=patient, completed_at__isnull=True).count(), 1)
-        self.assertEqual(demo_medicines.filter(status="sold", patient=patient, completed_at__isnull=False).count(), 1)
+        self.assertEqual(User.objects.filter(is_demo_account=True).exclude(role=User.Role.PHARMACIST).count(), 10)
+        self.assertEqual(User.objects.filter(is_demo_account=True, role=User.Role.PHARMACIST).count(), 3)
+        self.assertEqual(demo_medicines.count(), 36)
+        self.assertEqual(demo_medicines.filter(status="pending").count(), 5)
+        self.assertGreaterEqual(demo_medicines.filter(status="verified", patient__isnull=True).count(), 15)
+        self.assertEqual(demo_medicines.filter(status="rejected").count(), 5)
+        self.assertGreaterEqual(demo_medicines.filter(status="verified", patient__isnull=False, completed_at__isnull=True).count(), 3)
+        self.assertEqual(demo_medicines.filter(status="sold", patient__isnull=False, completed_at__isnull=False).count(), 4)
         self.assertTrue(demo_medicines.filter(status="rejected").exclude(rejection_reason="").exists())
+        self.assertGreaterEqual(demo_medicines.filter(qr_code_id__isnull=False).exclude(qr_code_id="").count(), 25)
+        self.assertEqual(ReMediCorner.objects.filter(name__startswith="ReMedi Demo Corner").count(), 5)
 
         analytics = calculate_demo_analytics()
-        self.assertEqual(analytics["medicines_donated"], 7)
-        self.assertEqual(analytics["medicines_rejected"], 1)
-        self.assertEqual(analytics["medicines_redistributed"], 1)
-        self.assertEqual(analytics["patients_helped_count"], 1)
+        self.assertEqual(analytics["medicines_donated"], 36)
+        self.assertEqual(analytics["medicines_rejected"], 5)
+        self.assertEqual(analytics["medicines_redistributed"], 4)
+        self.assertGreaterEqual(analytics["patients_helped_count"], 4)
+
+    def test_reset_demo_preserves_superusers_and_recreates_dataset(self):
+        User.objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="adminpass123",
+        )
+        call_command("seed_demo")
+
+        call_command("reset_demo")
+
+        self.assertTrue(User.objects.filter(username="admin", is_superuser=True).exists())
+        self.assertEqual(User.objects.filter(is_superuser=True).count(), 1)
+        self.assertEqual(User.objects.filter(is_demo_account=True).exclude(role=User.Role.PHARMACIST).count(), 10)
+        self.assertEqual(User.objects.filter(is_demo_account=True, role=User.Role.PHARMACIST).count(), 3)
+        self.assertEqual(Medicine.objects.filter(batch_number__startswith=DEMO_BATCH_PREFIX).count(), 36)
+        self.assertEqual(ReMediCorner.objects.filter(name__startswith="ReMedi Demo Corner").count(), 5)
+        self.assertGreaterEqual(Medicine.objects.filter(qr_code_id__isnull=False).exclude(qr_code_id="").count(), 25)
 
 
 class JudgeBypassTests(TestCase):
@@ -327,6 +349,11 @@ class FinalUIPolishTests(TestCase):
         self.assertContains(response, "Reduce Medicine Waste")
         self.assertContains(response, "AI-Powered Verification")
         self.assertContains(response, "Affordable Healthcare")
+        self.assertContains(response, 'id="hero-carousel"')
+        self.assertContains(response, "setInterval")
+        self.assertContains(response, "data-slide=\"0\"")
+        self.assertContains(response, "data-slide=\"1\"")
+        self.assertContains(response, "data-slide=\"2\"")
 
     def test_donation_page_renders_step_timeline_and_ai_summary_labels(self):
         self.client.force_login(self.user)
