@@ -155,11 +155,12 @@
                                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/20">
                                     <i class="bi bi-capsule-pill text-xl"></i>
                                 </div>
-                                <p class="text-xs font-bold uppercase tracking-widest text-emerald-300/70">Environmental Impact</p>
+                                <p class="text-xs font-bold uppercase tracking-widest text-emerald-300/70">Financial Impact</p>
                             </div>
                             <div class="mt-6">
-                                <p class="text-5xl font-black tracking-tight text-white">{{ demo_analytics.waste_prevented_count|default:0 }}</p>
-                                <p class="mt-2 text-sm font-medium text-emerald-100">Medications Saved From Waste</p>
+                                <p class="text-5xl font-black tracking-tight text-white">{{  total_saved |default:0 }} BDT </p>
+                                {% comment %} <p class="mt-2 text-sm font-medium text-emerald-100">Medications Saved From Waste</p> {% endcomment %}
+                                <p class="mt-1 text-xs text-emerald-400 font-semibold">Saved in expenses</p>
                                 <p class="mt-1 text-xs text-slate-400">Optimized via intelligent routing algorithms</p>
                             </div>
                         </div>
@@ -250,7 +251,7 @@
                             <div class="mt-6">
                                 <p class="text-5xl font-black tracking-tight text-white">{{ demo_analytics.patients_helped_count|default:0 }}</p>
                                 <p class="mt-2 text-sm font-medium text-indigo-100">Patients Benefited</p>
-                                <p class="mt-1 text-xs text-emerald-400 font-semibold">Saved {{ total_saved }} BDT in expenses</p>
+                                {% comment %} <p class="mt-1 text-xs text-emerald-400 font-semibold">Saved {{ total_saved }} BDT in expenses</p> {% endcomment %}
                             </div>
                         </div>
                     </div>
