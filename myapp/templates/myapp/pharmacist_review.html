@@ -149,6 +149,36 @@
                         <p class="text-sm font-black text-slate-900 mb-2">Explanation Summary</p>
                         <p class="text-sm leading-6 text-slate-700">{{ explanation.summary }}</p>
                     </div>
+                    <div class="rounded-2xl border border-sky-100 bg-sky-50 p-4">
+                        <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <p class="text-sm font-black text-sky-900"><i class="bi bi-shield-exclamation mr-2"></i>Why AI flagged this medicine</p>
+                            <span class="app-badge w-fit bg-white text-sky-700 ring-1 ring-sky-100">
+                                {{ evaluation.safety.source|default:"visual" }}{% if evaluation.safety.confidence %} · {{ evaluation.safety.confidence }}{% endif %}
+                            </span>
+                        </div>
+                        <p class="text-sm leading-6 text-sky-950">{{ evaluation.safety.summary|default:"Visual safety inspection completed." }}</p>
+                        <div class="mt-4 grid gap-2 sm:grid-cols-3">
+                            <span class="rounded-xl bg-white px-3 py-2 text-xs font-black {% if evaluation.safety.damaged_packaging %}text-amber-700{% else %}text-emerald-700{% endif %}">
+                                <i class="bi {% if evaluation.safety.damaged_packaging %}bi-exclamation-triangle{% else %}bi-check2-circle{% endif %} mr-1"></i>Package Intact
+                            </span>
+                            <span class="rounded-xl bg-white px-3 py-2 text-xs font-black {% if evaluation.safety.tampered_seal %}text-amber-700{% else %}text-emerald-700{% endif %}">
+                                <i class="bi {% if evaluation.safety.tampered_seal %}bi-exclamation-triangle{% else %}bi-check2-circle{% endif %} mr-1"></i>Seal Appears Valid
+                            </span>
+                            <span class="rounded-xl bg-white px-3 py-2 text-xs font-black {% if evaluation.safety.low_image_quality or evaluation.safety.image_unsuitable %}text-amber-700{% else %}text-emerald-700{% endif %}">
+                                <i class="bi {% if evaluation.safety.low_image_quality or evaluation.safety.image_unsuitable %}bi-exclamation-triangle{% else %}bi-check2-circle{% endif %} mr-1"></i>Label Readable
+                            </span>
+                        </div>
+                        {% if evaluation.safety.warnings %}
+                        <ul class="mt-4 space-y-2 text-sm font-semibold text-amber-900">
+                            {% for warning in evaluation.safety.warnings %}
+                            <li><i class="bi bi-exclamation-triangle mr-2"></i>{{ warning }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                        <p class="mt-4 rounded-xl bg-slate-950 px-4 py-3 text-center text-sm font-black text-white">
+                            AI recommendation only. Final decision belongs to the pharmacist.
+                        </p>
+                    </div>
                     <div class="sr-only">
                         <span>Positive Findings</span>
                         <span>Negative Findings</span>

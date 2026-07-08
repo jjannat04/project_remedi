@@ -46,7 +46,7 @@ from .services.reports import (
     generate_weekly_report,
 )
 from .services.reservations import release_expired_reservations, reserve_medicine, verify_pickup_otp
-from .services.safety import analyze_image_safety, calculate_donation_risk
+from .services.safety import analyze_image_safety, analyze_image_safety_deterministic, calculate_donation_risk
 
 
 STATICFILES_TEST_STORAGE = {
@@ -273,6 +273,134 @@ class SeededDemoPageTests(TestCase):
 
 
 class SafetyScreeningTests(TestCase):
+    def gemini_safety_json(self, **overrides):
+        payload = {
+            "damaged_packaging": False,
+            "tampered_seal": False,
+            "unclear_expiry": False,
+            "missing_batch": False,
+            "suspicious_condition": False,
+            "low_image_quality": False,
+            "counterfeit_warning": False,
+            "confidence": 0.93,
+            "summary": "Packaging appears intact with readable label and safety seal.",
+            "torn_packaging": False,
+            "missing_safety_seal": False,
+            "blurry_expiry": False,
+            "blurry_batch_number": False,
+            "water_damage": False,
+            "moisture_damage": False,
+            "crushed_strip": False,
+            "broken_bottle": False,
+            "missing_label": False,
+            "image_unsuitable": False,
+        }
+        payload.update(overrides)
+        return payload
+
+    def gemini_safety_text(self, **overrides):
+        import json
+
+        return json.dumps(self.gemini_safety_json(**overrides))
+
+    @override_settings(GEMINI_API_KEY="test-key")
+    @patch("myapp.services.safety._generate_gemini_safety_text")
+    def test_gemini_normal_package(self, mock_generate):
+        mock_generate.return_value = self.gemini_safety_text()
+
+        safety_result = analyze_image_safety(fake_image_file(content=b"x" * 2048), {"batch_number": "A1", "expiry_text": "EXP 12/2028"})
+
+        self.assertEqual(safety_result["source"], "gemini")
+        self.assertEqual(safety_result["confidence"], 0.93)
+        self.assertFalse(safety_result["damaged_packaging"])
+        self.assertFalse(safety_result["tampered_seal"])
+        self.assertTrue(safety_result["package_intact"])
+        self.assertTrue(safety_result["seal_valid"])
+        self.assertTrue(safety_result["label_readable"])
+        self.assertEqual(safety_result["warnings"], [])
+
+    @override_settings(GEMINI_API_KEY="test-key")
+    @patch("myapp.services.safety._generate_gemini_safety_text")
+    def test_gemini_damaged_package(self, mock_generate):
+        mock_generate.return_value = self.gemini_safety_text(
+            damaged_packaging=True,
+            torn_packaging=True,
+            summary="Outer box is visibly torn.",
+        )
+
+        safety_result = analyze_image_safety(fake_image_file(content=b"x" * 2048), {})
+
+        self.assertTrue(safety_result["damaged_packaging"])
+        self.assertFalse(safety_result["package_intact"])
+        self.assertIn("Possible package damage", safety_result["warnings"])
+
+    @override_settings(GEMINI_API_KEY="test-key")
+    @patch("myapp.services.safety._generate_gemini_safety_text")
+    def test_gemini_tampered_seal(self, mock_generate):
+        mock_generate.return_value = self.gemini_safety_text(
+            tampered_seal=True,
+            missing_safety_seal=True,
+            summary="Safety seal appears broken.",
+        )
+
+        safety_result = analyze_image_safety(fake_image_file(content=b"x" * 2048), {})
+
+        self.assertTrue(safety_result["tampered_seal"])
+        self.assertFalse(safety_result["seal_valid"])
+        self.assertIn("Possible broken or tampered seal", safety_result["warnings"])
+
+    @override_settings(GEMINI_API_KEY="test-key")
+    @patch("myapp.services.safety._generate_gemini_safety_text")
+    def test_gemini_low_quality_image(self, mock_generate):
+        mock_generate.return_value = self.gemini_safety_text(
+            low_image_quality=True,
+            image_unsuitable=True,
+            summary="Image is too blurry for verification.",
+        )
+
+        safety_result = analyze_image_safety(fake_image_file(content=b"x" * 2048), {})
+
+        self.assertTrue(safety_result["low_image_quality"])
+        self.assertFalse(safety_result["label_readable"])
+        self.assertIn("Image quality is low", safety_result["warnings"])
+        self.assertIn("Image unsuitable for verification", safety_result["warnings"])
+
+    @override_settings(GEMINI_API_KEY="test-key")
+    @patch("myapp.services.safety._generate_gemini_safety_text")
+    def test_invalid_gemini_json_retries_once_then_succeeds(self, mock_generate):
+        mock_generate.side_effect = ["not json", self.gemini_safety_text(summary="Retry returned valid visual findings.")]
+
+        safety_result = analyze_image_safety(fake_image_file(content=b"x" * 2048), {})
+
+        self.assertEqual(mock_generate.call_count, 2)
+        self.assertEqual(safety_result["source"], "gemini")
+        self.assertEqual(safety_result["summary"], "Retry returned valid visual findings.")
+
+    @override_settings(GEMINI_API_KEY="test-key")
+    @patch("myapp.services.safety._generate_gemini_safety_text", return_value="not json")
+    def test_invalid_gemini_json_twice_falls_back_to_deterministic(self, mock_generate):
+        safety_result = analyze_image_safety(
+            fake_image_file(name="opened-seal.jpg", content=b"x" * 2048),
+            {"expiry_text": "", "batch_number": ""},
+        )
+
+        self.assertEqual(mock_generate.call_count, 2)
+        self.assertEqual(safety_result["source"], "deterministic")
+        self.assertTrue(safety_result["tampered_seal"])
+        self.assertTrue(safety_result["unclear_expiry"])
+
+    @override_settings(GEMINI_API_KEY="")
+    @patch("myapp.services.safety._generate_gemini_safety_text")
+    def test_missing_gemini_key_uses_deterministic_fallback(self, mock_generate):
+        safety_result = analyze_image_safety(
+            fake_image_file(name="opened-seal.jpg", content=b"x" * 2048),
+            {"expiry_text": "", "batch_number": ""},
+        )
+
+        mock_generate.assert_not_called()
+        self.assertEqual(safety_result["source"], "deterministic")
+        self.assertTrue(safety_result["tampered_seal"])
+
     def test_low_risk_donation(self):
         ocr_result = {
             "medicine_name": "Napa",
@@ -280,7 +408,7 @@ class SafetyScreeningTests(TestCase):
             "expiry_text": "EXP 12/2028",
             "confidence": 0.92,
         }
-        safety_result = analyze_image_safety(fake_image_file(content=b"x" * 2048), ocr_result)
+        safety_result = analyze_image_safety_deterministic(fake_image_file(content=b"x" * 2048), ocr_result)
         risk = calculate_donation_risk(ocr_result, safety_result)
 
         self.assertFalse(safety_result["tampered_seal"])
@@ -296,7 +424,7 @@ class SafetyScreeningTests(TestCase):
             "expiry_text": "EXP 12/2028",
             "confidence": 0.65,
         }
-        safety_result = analyze_image_safety(fake_image_file(content=b"x" * 2048), ocr_result)
+        safety_result = analyze_image_safety_deterministic(fake_image_file(content=b"x" * 2048), ocr_result)
         risk = calculate_donation_risk(ocr_result, safety_result)
 
         self.assertEqual(risk["risk_score"], 40)
@@ -311,7 +439,7 @@ class SafetyScreeningTests(TestCase):
             "expiry_text": "",
             "confidence": 0.51,
         }
-        safety_result = analyze_image_safety(fake_image_file(name="opened-seal.jpg", content=b"x" * 2048), ocr_result)
+        safety_result = analyze_image_safety_deterministic(fake_image_file(name="opened-seal.jpg", content=b"x" * 2048), ocr_result)
         risk = calculate_donation_risk(ocr_result, safety_result)
 
         self.assertTrue(safety_result["tampered_seal"])
@@ -333,7 +461,7 @@ class SafetyScreeningTests(TestCase):
         self.assertEqual(risk["risk_level"], "High")
 
     def test_missing_ocr_fields_are_handled(self):
-        safety_result = analyze_image_safety(fake_image_file(content=b"x" * 2048), {})
+        safety_result = analyze_image_safety_deterministic(fake_image_file(content=b"x" * 2048), {})
         risk = calculate_donation_risk({}, safety_result)
 
         self.assertTrue(safety_result["unclear_expiry"])
@@ -354,6 +482,13 @@ class DonationDecisionTests(TestCase):
                 "unclear_expiry": False,
                 "suspicious_condition": False,
                 "low_image_quality": False,
+                "confidence": 0.88,
+                "source": "gemini",
+                "summary": "Package appears intact and label is readable.",
+                "warnings": [],
+                "package_intact": True,
+                "seal_valid": True,
+                "label_readable": True,
             },
             {"risk_score": 20},
         )
@@ -551,6 +686,13 @@ class DonationExplanationTests(TestCase):
                 "unclear_expiry": False,
                 "suspicious_condition": False,
                 "low_image_quality": False,
+                "confidence": 0.88,
+                "source": "gemini",
+                "summary": "Package appears intact and label is readable.",
+                "warnings": [],
+                "package_intact": True,
+                "seal_valid": True,
+                "label_readable": True,
             },
             "risk": {
                 "risk_score": risk_score,
@@ -831,6 +973,10 @@ class JudgeOcrPipelinePageTests(TestCase):
                 "unclear_expiry": decision == "reject",
                 "suspicious_condition": False,
                 "low_image_quality": False,
+                "confidence": 0.88,
+                "source": "gemini",
+                "summary": "Seal is readable but the expiry area needs pharmacist review.",
+                "warnings": ["Expiry text is blurry or unclear"] if decision == "reject" else [],
             },
             "risk": {
                 "risk_score": risk_score,
@@ -985,6 +1131,10 @@ class PharmacistReviewWorkflowTests(TestCase):
                 "unclear_expiry": decision == "reject",
                 "suspicious_condition": False,
                 "low_image_quality": False,
+                "confidence": 0.88,
+                "source": "gemini",
+                "summary": "Seal is readable but the expiry area needs pharmacist review.",
+                "warnings": ["Expiry text is blurry or unclear"] if decision == "reject" else [],
             },
             "risk": {
                 "risk_score": risk_score,
@@ -1031,6 +1181,9 @@ class PharmacistReviewWorkflowTests(TestCase):
         self.assertContains(response, "Explanation Summary")
         self.assertContains(response, "Positive Findings")
         self.assertContains(response, "Negative Findings")
+        self.assertContains(response, "Why AI flagged this medicine")
+        self.assertContains(response, "Seal is readable but the expiry area needs pharmacist review.")
+        self.assertContains(response, "AI recommendation only. Final decision belongs to the pharmacist.")
 
     @override_settings(DEMO_MODE=True)
     @patch("myapp.views.evaluate_donation")
@@ -2081,6 +2234,13 @@ class MedicineImageUploadTests(TestCase):
                 "unclear_expiry": False,
                 "suspicious_condition": False,
                 "low_image_quality": False,
+                "confidence": 0.88,
+                "source": "gemini",
+                "summary": "Package appears intact and label is readable.",
+                "warnings": [],
+                "package_intact": True,
+                "seal_valid": True,
+                "label_readable": True,
             },
             "risk": {
                 "risk_score": 0,
@@ -2104,7 +2264,7 @@ class MedicineImageUploadTests(TestCase):
         self.assertContains(response, "Image Donor")
         self.assertContains(response, "AI Medicine Scan")
         self.assertContains(response, "AI Extracted Information")
-        self.assertContains(response, "AI Safety Summary")
+        self.assertContains(response, "AI Visual Inspection")
 
     @patch("myapp.views.evaluate_donation")
     def test_ai_extraction_populates_scan_response(self, mock_evaluate):
@@ -2123,6 +2283,10 @@ class MedicineImageUploadTests(TestCase):
         self.assertTrue(payload["safety"]["expiry_visible"])
         self.assertTrue(payload["safety"]["batch_visible"])
         self.assertTrue(payload["safety"]["package_intact"])
+        self.assertTrue(payload["safety"]["seal_valid"])
+        self.assertTrue(payload["safety"]["label_readable"])
+        self.assertEqual(payload["safety"]["confidence"], 0.88)
+        self.assertEqual(payload["safety"]["summary"], "Package appears intact and label is readable.")
         self.assertEqual(payload["explanation"]["title"], "Medicine appears suitable for donation")
 
     def test_user_can_edit_ai_filled_fields_before_submission(self):

@@ -197,8 +197,8 @@
                         <i class="bi bi-shield-exclamation"></i>
                     </span>
                     <div>
-                        <h2 class="text-xl font-black text-slate-950">AI Safety Summary</h2>
-                        <p class="text-sm text-slate-500">AI review appears here after analysis.</p>
+                        <h2 class="text-xl font-black text-slate-950">AI Visual Inspection</h2>
+                        <p class="text-sm text-slate-500">Gemini reviews visible package condition only. A pharmacist still makes the final decision.</p>
                     </div>
                 </div>
 
@@ -221,9 +221,9 @@
                     <div class="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
                         <p class="mb-3 text-sm font-black text-emerald-800">Detected</p>
                         <ul class="space-y-2 text-sm font-semibold text-emerald-900">
-                            <li id="detected-expiry">- Expiry Visible</li>
-                            <li id="detected-batch">- Batch Visible</li>
-                            <li id="detected-package">- Package Intact</li>
+                            <li id="detected-package"><i class="bi bi-check2-circle"></i> Package Intact</li>
+                            <li id="detected-seal"><i class="bi bi-check2-circle"></i> Seal Appears Valid</li>
+                            <li id="detected-label"><i class="bi bi-check2-circle"></i> Label Readable</li>
                         </ul>
                     </div>
                     <div class="rounded-2xl border border-amber-100 bg-amber-50 p-4">
@@ -234,7 +234,7 @@
                     </div>
                 </div>
                 <p id="summary-text" class="mt-5 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-bold leading-6 text-white">
-                    Upload and analyze a package image to generate an AI safety summary.
+                    Upload and analyze a package image to generate an AI visual inspection summary.
                 </p>
             </section>
 
@@ -280,7 +280,9 @@
         }
 
         function setDetected(id, passed, label) {
-            document.getElementById(id).textContent = (passed ? "✓ " : "- ") + label;
+            const item = document.getElementById(id);
+            const icon = passed ? "bi-check2-circle" : "bi-dash-circle";
+            item.innerHTML = '<i class="bi ' + icon + '"></i> ' + label;
         }
 
         function renderWarnings(points) {
@@ -294,7 +296,7 @@
             }
             points.forEach(function (point) {
                 const item = document.createElement("li");
-                item.textContent = point;
+                item.innerHTML = '<i class="bi bi-exclamation-triangle"></i> ' + point;
                 list.appendChild(item);
             });
         }
@@ -347,14 +349,14 @@
                     fields.expiry_date.value = ocr.expiry_date || fields.expiry_date.value;
                     showAiBadges();
 
-                    document.getElementById("summary-confidence").textContent = ocr.confidence ?? "--";
+                    document.getElementById("summary-confidence").textContent = (payload.safety && payload.safety.confidence) ?? "--";
                     document.getElementById("summary-risk").textContent = (payload.risk && payload.risk.risk_level) || "--";
                     document.getElementById("summary-recommendation").textContent = (payload.decision && payload.decision.decision ? payload.decision.decision : "--").toString().toUpperCase();
-                    setDetected("detected-expiry", payload.safety && payload.safety.expiry_visible, "Expiry Visible");
-                    setDetected("detected-batch", payload.safety && payload.safety.batch_visible, "Batch Visible");
                     setDetected("detected-package", payload.safety && payload.safety.package_intact, "Package Intact");
-                    renderWarnings(payload.explanation && payload.explanation.negative_points);
-                    document.getElementById("summary-text").textContent = (payload.explanation && payload.explanation.summary) || "AI evaluation complete.";
+                    setDetected("detected-seal", payload.safety && payload.safety.seal_valid, "Seal Appears Valid");
+                    setDetected("detected-label", payload.safety && payload.safety.label_readable, "Label Readable");
+                    renderWarnings((payload.safety && payload.safety.warnings) || (payload.explanation && payload.explanation.negative_points));
+                    document.getElementById("summary-text").textContent = (payload.safety && payload.safety.summary) || (payload.explanation && payload.explanation.summary) || "AI visual inspection complete.";
                 })
                 .catch(function (error) {
                     errorText.textContent = error.message;
