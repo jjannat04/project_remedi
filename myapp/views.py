@@ -22,7 +22,7 @@ from .services.marketplace import get_marketplace_medicines
 from .services.pipeline import evaluate_donation
 from .services.qr import ensure_medicine_qr, render_qr_data_uri
 from .services.reports import REPORT_TYPES, generate_report
-from .services.reservations import reserve_medicine, verify_pickup_otp
+from .services.reservations import get_active_reserved_pickups, reserve_medicine, verify_pickup_otp
 
 
 def hackathon_media_serve(request, path):
@@ -215,6 +215,7 @@ def pharmacist_pickup(request):
 
     return render(request, 'myapp/pharmacist_pickup.html', {
         'result': result,
+        'reserved_pickups': get_active_reserved_pickups(),
     })
 
 

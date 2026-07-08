@@ -27,6 +27,23 @@ def release_expired_reservations(now=None):
     )
 
 
+def get_active_reserved_pickups(now=None):
+    """Return active reserved medicines visible to pickup verifiers."""
+    now = now or timezone.now()
+    release_expired_reservations(now)
+    return (
+        Medicine.objects
+        .select_related("patient", "donor")
+        .filter(
+            status="verified",
+            patient__isnull=False,
+            completed_at__isnull=True,
+            reserved_until__gt=now,
+        )
+        .order_by("reserved_until", "id")
+    )
+
+
 def reserve_medicine(medicine_id, user, now=None):
     """Reserve an available marketplace medicine for 24 hours and generate its pickup OTP."""
     now = now or timezone.now()

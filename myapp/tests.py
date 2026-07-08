@@ -1748,6 +1748,63 @@ class ReservationSystemTests(TestCase):
 
         self.assertContains(response, "Invalid OTP")
 
+    def test_pharmacist_pickup_page_lists_active_reserved_pickups(self):
+        self.reserve()
+        issued_otp = self.medicine.pickup_otp
+        self.client.force_login(self.pharmacist)
+
+        response = self.client.get(reverse("pharmacist_pickup"))
+
+        self.assertContains(response, "Reserved Pickups")
+        self.assertContains(response, "Reservation Med")
+        self.assertContains(response, "Medicine ID:")
+        self.assertContains(response, str(self.medicine.id))
+        self.assertContains(response, self.medicine.qr_code_id)
+        self.assertContains(response, "reservation_patient")
+        self.assertContains(response, "Code issued")
+        self.assertContains(response, "Use QR ID")
+        self.assertContains(response, "Use Med ID")
+        self.assertNotContains(response, issued_otp)
+
+    def test_pharmacist_pickup_page_releases_and_hides_expired_reservations(self):
+        self.reserve()
+        Medicine.objects.filter(id=self.medicine.id).update(
+            reserved_until=timezone.now() - timedelta(minutes=1)
+        )
+        self.client.force_login(self.pharmacist)
+
+        response = self.client.get(reverse("pharmacist_pickup"))
+
+        self.assertContains(response, "No active reserved pickups right now.")
+        self.assertNotContains(response, "Reservation Med")
+        self.medicine.refresh_from_db()
+        self.assertIsNone(self.medicine.patient)
+        self.assertIsNone(self.medicine.reserved_until)
+        self.assertEqual(self.medicine.pickup_otp, "")
+
+    def test_pharmacist_pickup_page_hides_collected_medicines(self):
+        self.reserve()
+        verify_pickup_otp(self.medicine.qr_code_id, self.medicine.pickup_otp)
+        self.client.force_login(self.pharmacist)
+
+        response = self.client.get(reverse("pharmacist_pickup"))
+
+        self.assertContains(response, "No active reserved pickups right now.")
+        self.assertNotContains(response, "Reservation Med")
+
+    def test_successful_pickup_post_removes_medicine_from_reserved_list(self):
+        self.reserve()
+        self.client.force_login(self.pharmacist)
+
+        response = self.client.post(reverse("pharmacist_pickup"), {
+            "identifier": self.medicine.qr_code_id,
+            "otp": self.medicine.pickup_otp,
+        })
+
+        self.assertContains(response, "Medicine collected successfully.")
+        self.assertContains(response, "No active reserved pickups right now.")
+        self.assertNotContains(response, "Reservation Med")
+
 
 class ImpactDashboardTests(TestCase):
     def setUp(self):

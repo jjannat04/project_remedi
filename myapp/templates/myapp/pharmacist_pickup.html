@@ -1,38 +1,148 @@
 {% extends 'myapp/base.html' %}
 
 {% block content %}
-<main class="max-w-3xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
-    <section class="app-card p-6 sm:p-8">
-        <p class="text-xs font-black uppercase tracking-widest text-teal-700 mb-2">Collection Verification</p>
-        <h1 class="text-4xl font-black text-slate-950 mb-2">Verify Collection Code</h1>
-        <p class="mb-6 text-slate-500">Confirm the patient pickup code before marking medicine collection.</p>
+<main class="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+    <div class="mb-8">
+        <p class="mb-2 text-xs font-black uppercase tracking-widest text-teal-700">Collection Verification</p>
+        <h1 class="text-3xl font-black text-slate-950 sm:text-4xl">Verifier Pickup Desk</h1>
+        <p class="mt-2 max-w-2xl text-slate-500">Match the patient-provided collection code with a reserved medicine before marking pickup complete.</p>
+    </div>
 
-        {% if result %}
-            {% if result.success %}
-            <div class="mb-6 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-emerald-800 font-bold">
-                {{ result.message }}
+    <div class="grid gap-6 lg:grid-cols-[0.9fr_1.4fr]">
+        <section class="app-card p-6 sm:p-8">
+            <div class="mb-6 flex items-start gap-3">
+                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-xl text-teal-700">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-black text-slate-950">Verify Collection Code</h2>
+                    <p class="mt-1 text-sm text-slate-500">Enter the QR ID or Medicine ID, then the OTP shared by the patient.</p>
+                </div>
+            </div>
+
+            {% if result %}
+                {% if result.success %}
+                <div class="mb-6 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
+                    {{ result.message }}
+                </div>
+                {% else %}
+                <div class="mb-6 rounded-xl border border-red-100 bg-red-50 p-4 text-sm font-bold text-red-800">
+                    {{ result.message }}
+                </div>
+                {% endif %}
+            {% endif %}
+
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label for="identifier" class="mb-1 block text-sm font-bold text-slate-700">QR ID or Medicine ID</label>
+                    <input id="identifier" name="identifier" type="text" required class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-500 focus:outline-none" autocomplete="off">
+                </div>
+                <div>
+                    <label for="otp" class="mb-1 block text-sm font-bold text-slate-700">Collection Code</label>
+                    <input id="otp" name="otp" type="text" inputmode="numeric" pattern="[0-9]{6}" required class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-500 focus:outline-none" autocomplete="one-time-code">
+                </div>
+                <button type="submit" class="app-btn app-btn-primary w-full justify-center sm:w-auto">
+                    <i class="bi bi-check2-circle"></i>Verify Pickup
+                </button>
+            </form>
+        </section>
+
+        <section class="app-card overflow-hidden">
+            <div class="border-b border-slate-100 p-6 sm:p-8">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <p class="mb-2 text-xs font-black uppercase tracking-widest text-sky-700">Active Reservations</p>
+                        <h2 class="text-2xl font-black text-slate-950">Reserved Pickups</h2>
+                        <p class="mt-1 text-sm text-slate-500">Use these identifiers when a patient arrives for collection. The OTP remains patient-held.</p>
+                    </div>
+                    <span class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+                        <i class="bi bi-key"></i> Code issued
+                    </span>
+                </div>
+            </div>
+
+            {% if reserved_pickups %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-100 text-sm">
+                    <thead class="bg-slate-50 text-left text-xs font-black uppercase tracking-wider text-slate-500">
+                        <tr>
+                            <th class="px-5 py-3">Medicine</th>
+                            <th class="px-5 py-3">Identifiers</th>
+                            <th class="px-5 py-3">Patient</th>
+                            <th class="px-5 py-3">Reservation Expiry</th>
+                            <th class="px-5 py-3">OTP Status</th>
+                            <th class="px-5 py-3">Use</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 bg-white">
+                        {% for medicine in reserved_pickups %}
+                        <tr class="align-top">
+                            <td class="px-5 py-4">
+                                <div class="font-black text-slate-900">{{ medicine.name }}</div>
+                                <div class="mt-1 text-xs text-slate-500">{{ medicine.scientific_name }}</div>
+                            </td>
+                            <td class="px-5 py-4">
+                                <div class="space-y-1 font-mono text-xs text-slate-700">
+                                    <div><span class="font-sans font-bold text-slate-500">Medicine ID:</span> {{ medicine.id }}</div>
+                                    <div><span class="font-sans font-bold text-slate-500">QR ID:</span> {{ medicine.qr_code_id }}</div>
+                                </div>
+                            </td>
+                            <td class="px-5 py-4">
+                                <div class="font-bold text-slate-800">{{ medicine.patient.get_full_name|default:medicine.patient.username }}</div>
+                                <div class="mt-1 text-xs text-slate-500">@{{ medicine.patient.username }}</div>
+                            </td>
+                            <td class="px-5 py-4 whitespace-nowrap text-slate-700">
+                                {{ medicine.reserved_until|date:"M d, Y H:i" }}
+                            </td>
+                            <td class="px-5 py-4">
+                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">
+                                    <i class="bi bi-check-circle"></i> Code issued
+                                </span>
+                            </td>
+                            <td class="px-5 py-4">
+                                <div class="flex flex-col gap-2">
+                                    {% if medicine.qr_code_id %}
+                                    <button type="button" class="rounded-lg border border-teal-200 px-3 py-2 text-xs font-black text-teal-700 transition hover:bg-teal-50" data-fill-identifier="{{ medicine.qr_code_id }}">
+                                        Use QR ID
+                                    </button>
+                                    {% endif %}
+                                    <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50" data-fill-identifier="{{ medicine.id }}">
+                                        Use Med ID
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
             {% else %}
-            <div class="mb-6 rounded-xl border border-red-100 bg-red-50 p-4 text-red-800 font-bold">
-                {{ result.message }}
+            <div class="p-8 text-center">
+                <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-xl text-slate-500">
+                    <i class="bi bi-inboxes"></i>
+                </div>
+                <p class="font-black text-slate-800">No active reserved pickups right now.</p>
+                <p class="mt-1 text-sm text-slate-500">New patient reservations will appear here with their QR and medicine IDs.</p>
             </div>
             {% endif %}
-        {% endif %}
-
-        <form method="post" class="space-y-4">
-            {% csrf_token %}
-            <div>
-                <label for="identifier" class="block text-sm font-bold text-slate-700 mb-1">QR ID or Medicine ID</label>
-                <input id="identifier" name="identifier" type="text" required class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-500 focus:outline-none">
-            </div>
-            <div>
-                <label for="otp" class="block text-sm font-bold text-slate-700 mb-1">Collection Code</label>
-                <input id="otp" name="otp" type="text" inputmode="numeric" pattern="[0-9]{6}" required class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-sky-500 focus:outline-none">
-            </div>
-            <button type="submit" class="app-btn app-btn-primary">
-                <i class="bi bi-shield-check"></i>Verify Pickup
-            </button>
-        </form>
-    </section>
+        </section>
+    </div>
 </main>
+
+<script>
+(function () {
+    const identifierInput = document.getElementById("identifier");
+    if (!identifierInput) {
+        return;
+    }
+
+    document.querySelectorAll("[data-fill-identifier]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            identifierInput.value = button.dataset.fillIdentifier || "";
+            identifierInput.focus();
+        });
+    });
+})();
+</script>
 {% endblock %}
