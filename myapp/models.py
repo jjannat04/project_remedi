@@ -29,11 +29,27 @@ class Medicine(models.Model):
         ('rejected', 'Rejected'),
         ('sold', 'Sold'),
     ]
+    PACKAGE_TYPE_CHOICES = [
+        ('strip', 'Strip'),
+        ('bottle', 'Bottle'),
+        ('box', 'Box'),
+        ('tube', 'Tube'),
+        ('injection', 'Injection'),
+        ('other', 'Other'),
+    ]
+    STORAGE_CONDITION_CHOICES = [
+        ('room_temperature', 'Room Temperature'),
+        ('refrigerated', 'Refrigerated'),
+        ('cool_dry', 'Cool & Dry Place'),
+        ('unknown', 'Unknown'),
+    ]
 
     # Change User to 'myapp.User' to point to your custom model
     donor = models.ForeignKey('myapp.User', on_delete=models.CASCADE, related_name='donations')
     name = models.CharField(max_length=255)
     scientific_name = models.CharField(max_length=255, blank=True)
+    dosage = models.CharField(max_length=100, blank=True)
+    manufacturer = models.CharField(max_length=255, blank=True)
     category = models.CharField(max_length=100, blank=True)
     batch_number = models.CharField(max_length=100)
     medicine_image = models.ImageField(upload_to='medicines/%Y/%m/', blank=True)
@@ -58,6 +74,15 @@ class Medicine(models.Model):
     reserved_until = models.DateTimeField(null=True, blank=True)
     pickup_otp = models.CharField(max_length=6, blank=True)
     otp_generated_at = models.DateTimeField(null=True, blank=True)
+    donor_phone = models.CharField(max_length=20, blank=True)
+    donation_address = models.TextField(blank=True)
+    district = models.CharField(max_length=100, blank=True)
+    area = models.CharField(max_length=100, blank=True)
+    pickup_notes = models.TextField(blank=True)
+    quantity = models.PositiveIntegerField(default=1)
+    package_type = models.CharField(max_length=20, choices=PACKAGE_TYPE_CHOICES, default='strip')
+    opened = models.BooleanField(default=False)
+    storage_condition = models.CharField(max_length=30, choices=STORAGE_CONDITION_CHOICES, default='unknown')
 
     def save(self, *args, **kwargs):
         self.resale_price = self.original_price * Decimal("0.30")

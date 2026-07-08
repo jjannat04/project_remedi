@@ -1,66 +1,370 @@
 {% extends 'myapp/base.html' %}
 
 {% block content %}
-<div class="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-3xl mx-auto">
-        
-        <!-- Header & Impact Note -->
-        <div class="text-center mb-10">
-            <span class="app-badge mx-auto mb-4 bg-emerald-50 text-teal-700 ring-1 ring-emerald-100">
-                <i class="bi bi-heart-pulse"></i> Safe Redistribution
-            </span>
-            <h1 class="text-4xl font-black text-slate-950 mb-3">Donate Medicine</h1>
-            <p class="text-slate-600">Your donation helps reduce waste and provides affordable healthcare to the community.</p>
-        </div>
-
-        <div class="app-card overflow-hidden">
-            <div class="md:flex">
-                <!-- Left Side: Guidelines (The "Pro" Touch) -->
-                <div class="bg-teal-700 md:w-1/3 p-8 text-white">
-                    <h3 class="text-xl font-black mb-6"><i class="bi bi-shield-check mr-2"></i>Guidelines</h3>
-                    <ul class="space-y-4 text-sm text-emerald-100">
-                        <li class="flex gap-3">
-                            <span class="bg-emerald-500 h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0">1</span>
-                            Check that the seal is unbroken.
-                        </li>
-                        <li class="flex gap-3">
-                            <span class="bg-emerald-500 h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0">2</span>
-                            Ensure the expiry date is at least 3 months away.
-                        </li>
-                        <li class="flex gap-3">
-                            <span class="bg-emerald-500 h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0">3</span>
-                            Enter the batch number exactly as shown on the package.
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Right Side: The Form -->
-                <div class="md:w-2/3 p-8 lg:p-12">
-                    <form method="post" enctype="multipart/form-data" class="space-y-6">
-                        {% csrf_token %}
-                        
-                        {% for field in form %}
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">
-                                {{ field.label }}
-                            </label>
-                            <div class="relative">
-                                {{ field }}
-                            </div>
-                            {% if field.errors %}
-                                <p class="text-red-500 text-xs mt-1">{{ field.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-
-                        <button type="submit" class="app-btn app-btn-primary w-full py-4">
-                            <i class="bi bi-plus-circle"></i>Confirm Donation
-                        </button>
-                    </form>
-                </div>
+<main class="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-6xl">
+        <div class="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+                <span class="app-badge mb-4 bg-emerald-50 text-teal-700 ring-1 ring-emerald-100">
+                    <i class="bi bi-magic"></i> AI Donation Assistant
+                </span>
+                <h1 class="text-4xl font-black tracking-tight text-slate-950">Donate Medicine</h1>
+                <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                    Upload the medicine package first. ReMedi AI will extract the medicine details, flag safety signals, and help you complete the donation faster.
+                </p>
+            </div>
+            <div class="rounded-2xl border border-teal-100 bg-white px-5 py-4 shadow-sm">
+                <p class="text-xs font-black uppercase tracking-widest text-slate-400">Donating as</p>
+                <p class="text-lg font-black text-teal-800">{{ donor_display_name }}</p>
             </div>
         </div>
-    </div>
-</div>
 
+        <form method="post" enctype="multipart/form-data" class="space-y-6" id="donation-form">
+            {% csrf_token %}
+
+            <section class="app-card p-5 sm:p-6">
+                <div class="mb-5 flex items-center gap-3">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-50 text-teal-700">
+                        <i class="bi bi-person-vcard"></i>
+                    </span>
+                    <div>
+                        <h2 class="text-xl font-black text-slate-950">Donor Information</h2>
+                        <p class="text-sm text-slate-500">Confirm pickup contact details for this donation.</p>
+                    </div>
+                </div>
+
+                <div class="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p class="text-xs font-black uppercase tracking-widest text-slate-400">Donating as:</p>
+                    <p class="mt-1 text-lg font-black text-slate-950">{{ donor_display_name }}</p>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div>
+                        <label for="{{ form.donor_phone.id_for_label }}" class="mb-1 block text-sm font-bold text-slate-700">{{ form.donor_phone.label }}</label>
+                        {{ form.donor_phone }}
+                        {% if form.donor_phone.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ form.donor_phone.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.district.id_for_label }}" class="mb-1 block text-sm font-bold text-slate-700">{{ form.district.label }}</label>
+                        {{ form.district }}
+                        {% if form.district.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ form.district.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.area.id_for_label }}" class="mb-1 block text-sm font-bold text-slate-700">{{ form.area.label }}</label>
+                        {{ form.area }}
+                        {% if form.area.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ form.area.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div class="md:row-span-2">
+                        <label for="{{ form.donation_address.id_for_label }}" class="mb-1 block text-sm font-bold text-slate-700">{{ form.donation_address.label }}</label>
+                        {{ form.donation_address }}
+                        {% if form.donation_address.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ form.donation_address.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.pickup_notes.id_for_label }}" class="mb-1 block text-sm font-bold text-slate-700">{{ form.pickup_notes.label }}</label>
+                        {{ form.pickup_notes }}
+                        {% if form.pickup_notes.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ form.pickup_notes.errors.0 }}</p>{% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <section class="app-card overflow-hidden">
+                <div class="grid lg:grid-cols-[1fr_0.95fr]">
+                    <div class="p-5 sm:p-6">
+                        <div class="mb-5 flex items-center gap-3">
+                            <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+                                <i class="bi bi-camera"></i>
+                            </span>
+                            <div>
+                                <h2 class="text-xl font-black text-slate-950">AI Medicine Scan</h2>
+                                <p class="text-sm text-slate-500">Upload a clear photo so AI can identify the package.</p>
+                            </div>
+                        </div>
+
+                        <label for="{{ form.medicine_image.id_for_label }}" class="flex min-h-72 cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-teal-200 bg-teal-50/50 p-8 text-center transition hover:border-teal-400 hover:bg-teal-50">
+                            <i class="bi bi-cloud-arrow-up text-5xl text-teal-700"></i>
+                            <span class="mt-4 text-2xl font-black text-slate-950">Upload Medicine Package</span>
+                            <span class="mt-2 max-w-md text-sm leading-6 text-slate-600">
+                                Upload a clear photo of the medicine package. AI will automatically identify medicine information.
+                            </span>
+                            <span class="app-btn app-btn-primary mt-6">
+                                <i class="bi bi-image"></i>Choose Image
+                            </span>
+                        </label>
+                        <div class="mt-4">
+                            {{ form.medicine_image }}
+                            {% if form.medicine_image.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ form.medicine_image.errors.0 }}</p>{% endif %}
+                        </div>
+
+                        <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+                            <button type="button" id="analyze-button" class="app-btn app-btn-dark">
+                                <i class="bi bi-stars"></i>Analyze with AI
+                            </button>
+                            <p id="analysis-status" class="hidden text-sm font-bold text-teal-700">
+                                <span class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-teal-200 border-t-teal-700"></span>
+                                AI is analyzing your medicine...
+                            </p>
+                            <p id="analysis-error" class="hidden text-sm font-bold text-red-600"></p>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-slate-200 bg-slate-50 p-5 sm:p-6 lg:border-l lg:border-t-0">
+                        <p class="mb-3 text-sm font-black text-slate-900"><i class="bi bi-eye mr-2 text-teal-700"></i>Image Preview</p>
+                        <div class="flex min-h-80 items-center justify-center rounded-3xl border border-slate-200 bg-white p-4">
+                            <img id="image-preview" alt="Medicine package preview" class="hidden max-h-80 w-full rounded-2xl object-contain">
+                            <div id="preview-placeholder" class="text-center text-sm font-semibold text-slate-400">
+                                <i class="bi bi-image block text-5xl"></i>
+                                Preview appears after upload.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="app-card p-5 sm:p-6">
+                <div class="mb-5 flex items-center gap-3">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-50 text-violet-700">
+                        <i class="bi bi-clipboard2-pulse"></i>
+                    </span>
+                    <div>
+                        <h2 class="text-xl font-black text-slate-950">AI Extracted Information</h2>
+                        <p class="text-sm text-slate-500">Review and edit anything before submission.</p>
+                    </div>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {% for field in form %}
+                        {% if field.name == "name" or field.name == "scientific_name" or field.name == "dosage" or field.name == "manufacturer" or field.name == "batch_number" or field.name == "expiry_date" or field.name == "category" %}
+                        <div>
+                            <div class="mb-1 flex items-center justify-between gap-2">
+                                <label for="{{ field.id_for_label }}" class="block text-sm font-bold text-slate-700">{{ field.label }}</label>
+                                <span class="ai-filled-badge app-badge hidden bg-violet-50 text-violet-700 ring-1 ring-violet-100">✨ AI Filled</span>
+                            </div>
+                            {{ field }}
+                            {% if field.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ field.errors.0 }}</p>{% endif %}
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="app-card p-5 sm:p-6">
+                <div class="mb-5 flex items-center gap-3">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-700">
+                        <i class="bi bi-box-seam"></i>
+                    </span>
+                    <div>
+                        <h2 class="text-xl font-black text-slate-950">Donation Details</h2>
+                        <p class="text-sm text-slate-500">Complete details AI cannot reliably determine.</p>
+                    </div>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <div>
+                        <label for="{{ form.quantity.id_for_label }}" class="mb-1 block text-sm font-bold text-slate-700">{{ form.quantity.label }}</label>
+                        {{ form.quantity }}
+                        {% if form.quantity.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ form.quantity.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.package_type.id_for_label }}" class="mb-1 block text-sm font-bold text-slate-700">{{ form.package_type.label }}</label>
+                        {{ form.package_type }}
+                        {% if form.package_type.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ form.package_type.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.storage_condition.id_for_label }}" class="mb-1 block text-sm font-bold text-slate-700">{{ form.storage_condition.label }}</label>
+                        {{ form.storage_condition }}
+                        {% if form.storage_condition.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ form.storage_condition.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.original_price.id_for_label }}" class="mb-1 block text-sm font-bold text-slate-700">{{ form.original_price.label }}</label>
+                        {{ form.original_price }}
+                        {% if form.original_price.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ form.original_price.errors.0 }}</p>{% endif %}
+                    </div>
+                </div>
+                <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p class="mb-3 text-sm font-bold text-slate-700">{{ form.opened.label }}</p>
+                    <div class="flex gap-5 text-sm font-bold text-slate-700">
+                        {% for radio in form.opened %}
+                            <label class="flex items-center gap-2">{{ radio.tag }} {{ radio.choice_label }}</label>
+                        {% endfor %}
+                    </div>
+                    {% if form.opened.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ form.opened.errors.0 }}</p>{% endif %}
+                </div>
+            </section>
+
+            <section class="app-card p-5 sm:p-6" id="ai-summary">
+                <div class="mb-5 flex items-center gap-3">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-50 text-rose-700">
+                        <i class="bi bi-shield-exclamation"></i>
+                    </span>
+                    <div>
+                        <h2 class="text-xl font-black text-slate-950">AI Safety Summary</h2>
+                        <p class="text-sm text-slate-500">AI review appears here after analysis.</p>
+                    </div>
+                </div>
+
+                <div class="grid gap-4 lg:grid-cols-3">
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p class="text-xs font-black uppercase tracking-widest text-slate-400">AI Confidence</p>
+                        <p id="summary-confidence" class="mt-2 text-3xl font-black text-slate-950">--</p>
+                    </div>
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p class="text-xs font-black uppercase tracking-widest text-slate-400">Risk Level</p>
+                        <p id="summary-risk" class="mt-2 text-3xl font-black text-slate-950">--</p>
+                    </div>
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p class="text-xs font-black uppercase tracking-widest text-slate-400">Recommendation</p>
+                        <p id="summary-recommendation" class="mt-2 text-3xl font-black text-slate-950">--</p>
+                    </div>
+                </div>
+
+                <div class="mt-5 grid gap-4 lg:grid-cols-2">
+                    <div class="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                        <p class="mb-3 text-sm font-black text-emerald-800">Detected</p>
+                        <ul class="space-y-2 text-sm font-semibold text-emerald-900">
+                            <li id="detected-expiry">- Expiry Visible</li>
+                            <li id="detected-batch">- Batch Visible</li>
+                            <li id="detected-package">- Package Intact</li>
+                        </ul>
+                    </div>
+                    <div class="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                        <p class="mb-3 text-sm font-black text-amber-800">Warnings</p>
+                        <ul id="summary-warnings" class="space-y-2 text-sm font-semibold text-amber-900">
+                            <li>No AI warnings yet.</li>
+                        </ul>
+                    </div>
+                </div>
+                <p id="summary-text" class="mt-5 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-bold leading-6 text-white">
+                    Upload and analyze a package image to generate an AI safety summary.
+                </p>
+            </section>
+
+            <section class="app-card p-5 sm:p-6">
+                <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                    <label class="flex items-start gap-3 text-sm font-bold text-slate-700">
+                        {{ form.confirm_accuracy }}
+                        <span>{{ form.confirm_accuracy.label }}</span>
+                    </label>
+                    {% if form.confirm_accuracy.errors %}<p class="text-xs font-bold text-red-600">{{ form.confirm_accuracy.errors.0 }}</p>{% endif %}
+                    <button type="submit" class="app-btn app-btn-primary py-4 lg:min-w-60">
+                        <i class="bi bi-heart-pulse"></i>Submit Donation
+                    </button>
+                </div>
+            </section>
+        </form>
+    </div>
+</main>
+
+<script>
+    (function () {
+        const imageInput = document.getElementById("{{ form.medicine_image.id_for_label }}");
+        const preview = document.getElementById("image-preview");
+        const placeholder = document.getElementById("preview-placeholder");
+        const analyzeButton = document.getElementById("analyze-button");
+        const statusText = document.getElementById("analysis-status");
+        const errorText = document.getElementById("analysis-error");
+        const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+
+        const fields = {
+            medicine_name: document.getElementById("{{ form.name.id_for_label }}"),
+            scientific_name: document.getElementById("{{ form.scientific_name.id_for_label }}"),
+            dosage: document.getElementById("{{ form.dosage.id_for_label }}"),
+            manufacturer: document.getElementById("{{ form.manufacturer.id_for_label }}"),
+            batch_number: document.getElementById("{{ form.batch_number.id_for_label }}"),
+            expiry_date: document.getElementById("{{ form.expiry_date.id_for_label }}"),
+        };
+
+        function showAiBadges() {
+            document.querySelectorAll(".ai-filled-badge").forEach(function (badge) {
+                badge.classList.remove("hidden");
+            });
+        }
+
+        function setDetected(id, passed, label) {
+            document.getElementById(id).textContent = (passed ? "✓ " : "- ") + label;
+        }
+
+        function renderWarnings(points) {
+            const list = document.getElementById("summary-warnings");
+            list.innerHTML = "";
+            if (!points || points.length === 0) {
+                const item = document.createElement("li");
+                item.textContent = "No warnings detected.";
+                list.appendChild(item);
+                return;
+            }
+            points.forEach(function (point) {
+                const item = document.createElement("li");
+                item.textContent = point;
+                list.appendChild(item);
+            });
+        }
+
+        imageInput.addEventListener("change", function () {
+            const file = imageInput.files[0];
+            if (!file) {
+                preview.classList.add("hidden");
+                placeholder.classList.remove("hidden");
+                return;
+            }
+            preview.src = URL.createObjectURL(file);
+            preview.classList.remove("hidden");
+            placeholder.classList.add("hidden");
+        });
+
+        analyzeButton.addEventListener("click", function () {
+            const file = imageInput.files[0];
+            errorText.classList.add("hidden");
+            errorText.textContent = "";
+            if (!file) {
+                errorText.textContent = "Please choose an image before analysis.";
+                errorText.classList.remove("hidden");
+                return;
+            }
+
+            const data = new FormData();
+            data.append("medicine_image", file);
+            statusText.classList.remove("hidden");
+            analyzeButton.disabled = true;
+
+            fetch("{% url 'analyze_donation_image' %}", {
+                method: "POST",
+                headers: {"X-CSRFToken": csrfInput.value},
+                body: data
+            })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error("AI analysis failed. Please try again.");
+                    }
+                    return response.json();
+                })
+                .then(function (payload) {
+                    const ocr = payload.ocr || {};
+                    fields.medicine_name.value = ocr.medicine_name || fields.medicine_name.value;
+                    fields.scientific_name.value = ocr.scientific_name || fields.scientific_name.value;
+                    fields.dosage.value = ocr.dosage || fields.dosage.value;
+                    fields.manufacturer.value = ocr.manufacturer || fields.manufacturer.value;
+                    fields.batch_number.value = ocr.batch_number || fields.batch_number.value;
+                    fields.expiry_date.value = ocr.expiry_date || fields.expiry_date.value;
+                    showAiBadges();
+
+                    document.getElementById("summary-confidence").textContent = ocr.confidence ?? "--";
+                    document.getElementById("summary-risk").textContent = (payload.risk && payload.risk.risk_level) || "--";
+                    document.getElementById("summary-recommendation").textContent = (payload.decision && payload.decision.decision ? payload.decision.decision : "--").toString().toUpperCase();
+                    setDetected("detected-expiry", payload.safety && payload.safety.expiry_visible, "Expiry Visible");
+                    setDetected("detected-batch", payload.safety && payload.safety.batch_visible, "Batch Visible");
+                    setDetected("detected-package", payload.safety && payload.safety.package_intact, "Package Intact");
+                    renderWarnings(payload.explanation && payload.explanation.negative_points);
+                    document.getElementById("summary-text").textContent = (payload.explanation && payload.explanation.summary) || "AI evaluation complete.";
+                })
+                .catch(function (error) {
+                    errorText.textContent = error.message;
+                    errorText.classList.remove("hidden");
+                })
+                .finally(function () {
+                    statusText.classList.add("hidden");
+                    analyzeButton.disabled = false;
+                });
+        });
+    })();
+</script>
 {% endblock %}

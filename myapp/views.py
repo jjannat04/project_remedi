@@ -3,13 +3,15 @@ from .models import Medicine, ReMediCorner
 from django.db.models import Sum
 from pathlib import Path
 import mimetypes
+import re
+from datetime import date
 from django.contrib.auth import login
 from .models import User
 from .forms import DonationForm, SignUpForm
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
-from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 
 from .services.analytics import calculate_demo_analytics, calculate_medicine_analytics, demo_medicine_queryset
 from .services.demo_data import ensure_demo_user
@@ -314,11 +316,83 @@ def corner_map(request):
     return render(request, 'myapp/map.html', {'corners': corners})
 
 
+def _donor_display_name(user):
+    return user.get_full_name().strip() or user.username
+
+
+def _parse_expiry_date(expiry_text):
+    text = (expiry_text or "").strip()
+    if not text:
+        return ""
+
+    match = re.search(r"\b(20\d{2})[-/.](0?[1-9]|1[0-2])[-/.](0?[1-9]|[12]\d|3[01])\b", text)
+    if match:
+        year, month, day = match.groups()
+        try:
+            return date(int(year), int(month), int(day)).isoformat()
+        except ValueError:
+            return ""
+
+    match = re.search(r"\b(0?[1-9]|1[0-2])[-/.](20\d{2})\b", text)
+    if match:
+        month, year = match.groups()
+        return date(int(year), int(month), 1).isoformat()
+
+    match = re.search(r"\b(0?[1-9]|[12]\d|3[01])[-/.](0?[1-9]|1[0-2])[-/.](20\d{2})\b", text)
+    if match:
+        day, month, year = match.groups()
+        try:
+            return date(int(year), int(month), int(day)).isoformat()
+        except ValueError:
+            return ""
+
+    return ""
+
+
+@login_required
+def analyze_donation_image(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Image analysis requires POST.'}, status=405)
+
+    image_file = request.FILES.get('medicine_image')
+    if not image_file:
+        return JsonResponse({'error': 'Please upload a medicine package image.'}, status=400)
+
+    evaluation = evaluate_donation(image_file)
+    explanation = build_explanation(evaluation)
+    ocr = evaluation.get('ocr') or {}
+    safety = evaluation.get('safety') or {}
+    risk = evaluation.get('risk') or {}
+    decision = evaluation.get('decision') or {}
+
+    return JsonResponse({
+        'ocr': {
+            'medicine_name': ocr.get('medicine_name', ''),
+            'scientific_name': ocr.get('scientific_name', ''),
+            'dosage': ocr.get('dosage', ''),
+            'manufacturer': ocr.get('manufacturer', ''),
+            'batch_number': ocr.get('batch_number', ''),
+            'expiry_text': ocr.get('expiry_text', ''),
+            'expiry_date': _parse_expiry_date(ocr.get('expiry_text')),
+            'confidence': ocr.get('confidence', 0),
+            'source': ocr.get('source', ''),
+        },
+        'safety': {
+            'expiry_visible': bool((ocr.get('expiry_text') or '').strip()) and not safety.get('unclear_expiry'),
+            'batch_visible': bool((ocr.get('batch_number') or '').strip()),
+            'package_intact': not safety.get('damaged_packaging') and not safety.get('tampered_seal'),
+            'flags': safety,
+        },
+        'risk': risk,
+        'decision': decision,
+        'explanation': explanation,
+    })
+
 
 @login_required
 def donate_medicine(request):
     if request.method == 'POST':
-        form = DonationForm(request.POST, request.FILES)
+        form = DonationForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             medicine = form.save(commit=False)
             medicine.donor = request.user  # Link the medicine to the logged-in user
@@ -328,8 +402,11 @@ def donate_medicine(request):
             medicine.save()
             return redirect('marketplace')
     else:
-        form = DonationForm()
-    return render(request, 'myapp/donate.html', {'form': form})
+        form = DonationForm(user=request.user)
+    return render(request, 'myapp/donate.html', {
+        'form': form,
+        'donor_display_name': _donor_display_name(request.user),
+    })
 
 @login_required
 def profile_view(request):

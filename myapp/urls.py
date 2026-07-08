@@ -23,6 +23,7 @@ urlpatterns = [
     path('pharmacist/review/<int:med_id>/', views.pharmacist_review, name='pharmacist_review'),
     path('verify/<int:med_id>/', views.verify_medicine, name='verify_medicine'),
     path('map/', views.corner_map, name='corner_map'),
+    path('donate/analyze/', views.analyze_donation_image, name='analyze_donation_image'),
     path('donate/', views.donate_medicine, name='donate_medicine'),
     path('profile/', views.profile_view, name='profile'),
     path('order/<int:med_id>/', views.order_medicine, name='order_medicine'),
