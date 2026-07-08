@@ -1,55 +1,170 @@
 {% extends 'myapp/base.html' %}
 
 {% block content %}
-<div class="min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="app-card max-w-xl w-full space-y-8 p-10">
-        <div class="text-center">
-            <span class="app-badge mx-auto mb-4 bg-emerald-50 text-teal-700 ring-1 ring-emerald-100">
-                <i class="bi bi-person-plus"></i> New Account
-            </span>
-            <h2 class="text-4xl font-black text-slate-950 tracking-tight">Join ReMedi</h2>
-            <p class="mt-2 text-sm text-slate-600">Start your journey toward zero-waste healthcare.</p>
+<main class="min-h-[calc(100vh-64px)] bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-5xl">
+        <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+                <span class="app-badge mb-4 bg-emerald-50 text-teal-700 ring-1 ring-emerald-100">
+                    <i class="bi bi-person-plus"></i> Secure Registration
+                </span>
+                <h1 class="text-4xl font-black tracking-tight text-slate-950">Join ReMedi</h1>
+                <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                    Create a verified healthcare access account for safe donation, review, and medicine redistribution.
+                </p>
+            </div>
+            <a href="{% url 'login' %}" class="app-btn app-btn-outline w-fit">
+                <i class="bi bi-box-arrow-in-right"></i>Log In
+            </a>
         </div>
 
-        <form class="mt-8 space-y-4" method="POST">
+        <form method="POST" class="app-card p-5 sm:p-8">
             {% csrf_token %}
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {% for field in form %}
-                    <div class="{% if field.name == 'username' or field.name == 'role' %}md:col-span-2{% endif %}">
-                        <label class="block text-sm font-bold text-slate-700 mb-1">{{ field.label }}</label>
-                        {% if field.name == "role" %}
-                            <select name="{{ field.name }}" id="{{ field.id_for_label }}">
-                                {% for value, label in field.field.choices %}
-                                    <option value="{{ value }}" {% if field.value == value %}selected{% endif %}>
-                                        {% if value == "DONOR" %}User{% elif value == "PHARMACIST" %}Verifier{% else %}{{ label }}{% endif %}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        {% else %}
-                            {{ field }}
-                        {% endif %}
-                        {% if field.errors %}
-                            <p class="text-red-500 text-xs mt-1">{{ field.errors.0 }}</p>
-                        {% endif %}
+            {% if form.non_field_errors %}
+                <div class="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
+                    {{ form.non_field_errors.0 }}
+                </div>
+            {% endif %}
+
+            <div class="grid gap-6">
+                <section class="rounded-2xl border border-slate-200 bg-white p-5">
+                    <div class="mb-5 flex items-center gap-3">
+                        <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-50 text-teal-700">
+                            <i class="bi bi-person-vcard"></i>
+                        </span>
+                        <div>
+                            <h2 class="text-xl font-black text-slate-950">Personal Information</h2>
+                            <p class="text-sm text-slate-500">Use information that matches your official records.</p>
+                        </div>
                     </div>
-                {% endfor %}
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label for="{{ form.full_name.id_for_label }}" class="mb-1 block text-sm font-bold text-slate-700">{{ form.full_name.label }}</label>
+                            {{ form.full_name }}
+                            {% if form.full_name.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ form.full_name.errors.0 }}</p>{% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.username.id_for_label }}" class="mb-1 block text-sm font-bold text-slate-700">{{ form.username.label }}</label>
+                            {{ form.username }}
+                            {% if form.username.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ form.username.errors.0 }}</p>{% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.nid.id_for_label }}" class="mb-1 block text-sm font-bold text-slate-700">{{ form.nid.label }}</label>
+                            {{ form.nid }}
+                            {% if form.nid.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ form.nid.errors.0 }}</p>{% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.phone.id_for_label }}" class="mb-1 block text-sm font-bold text-slate-700">{{ form.phone.label }}</label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ form.phone.errors.0 }}</p>{% endif %}
+                        </div>
+                    </div>
+                </section>
+
+                <section class="rounded-2xl border border-slate-200 bg-white p-5">
+                    <div class="mb-5 flex items-center gap-3">
+                        <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-50 text-sky-700">
+                            <i class="bi bi-people"></i>
+                        </span>
+                        <div>
+                            <h2 class="text-xl font-black text-slate-950">Account Type</h2>
+                            <p class="text-sm text-slate-500">Choose how you will use the platform.</p>
+                        </div>
+                    </div>
+                    <div class="grid gap-4 md:grid-cols-2" id="account-type-options">
+                        {% for radio in form.role %}
+                            <label class="cursor-pointer rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-teal-300 hover:bg-teal-50">
+                                <div class="flex items-start gap-3">
+                                    {{ radio.tag }}
+                                    <div>
+                                        <p class="font-black text-slate-950">{{ radio.choice_label }}</p>
+                                        <p class="mt-1 text-sm leading-6 text-slate-600">
+                                            {% if radio.data.value == "PHARMACIST" %}
+                                                Review donated medicine and complete professional verification.
+                                            {% else %}
+                                                Donate surplus medicine, browse verified listings, and manage your account.
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </label>
+                        {% endfor %}
+                    </div>
+                    {% if form.role.errors %}<p class="mt-2 text-xs font-bold text-red-600">{{ form.role.errors.0 }}</p>{% endif %}
+                </section>
+
+                <section id="professional-verification-section" class="rounded-2xl border border-sky-200 bg-sky-50 p-5" {% if form.role.value != "PHARMACIST" %}hidden{% endif %}>
+                    <div class="mb-5 flex items-center gap-3">
+                        <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-sky-700">
+                            <i class="bi bi-shield-check"></i>
+                        </span>
+                        <div>
+                            <h2 class="text-xl font-black text-slate-950">Professional Verification</h2>
+                            <p class="text-sm text-slate-600">Required for Healthcare Verifier accounts.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="{{ form.license_number.id_for_label }}" class="mb-1 block text-sm font-bold text-slate-700">{{ form.license_number.label }}</label>
+                        {{ form.license_number }}
+                        {% if form.license_number.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ form.license_number.errors.0 }}</p>{% endif %}
+                    </div>
+                </section>
+
+                <section class="rounded-2xl border border-slate-200 bg-white p-5">
+                    <div class="mb-5 flex items-center gap-3">
+                        <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+                            <i class="bi bi-lock"></i>
+                        </span>
+                        <div>
+                            <h2 class="text-xl font-black text-slate-950">Security</h2>
+                            <p class="text-sm text-slate-500">Protect your ReMedi account with a secure password.</p>
+                        </div>
+                    </div>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label for="{{ form.password1.id_for_label }}" class="mb-1 block text-sm font-bold text-slate-700">Password</label>
+                            {{ form.password1 }}
+                            {% if form.password1.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ form.password1.errors.0 }}</p>{% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.password2.id_for_label }}" class="mb-1 block text-sm font-bold text-slate-700">Confirm Password</label>
+                            {{ form.password2 }}
+                            {% if form.password2.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ form.password2.errors.0 }}</p>{% endif %}
+                        </div>
+                    </div>
+                </section>
             </div>
 
-            <button type="submit" class="app-btn app-btn-primary w-full mt-6 py-4">
-                <i class="bi bi-person-check"></i>Create Account
-            </button>
+            <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-sm font-semibold text-slate-500">Healthcare Verifier accounts require platform approval before access.</p>
+                <button type="submit" class="app-btn app-btn-primary py-4 sm:min-w-48">
+                    <i class="bi bi-person-check"></i>Create Account
+                </button>
+            </div>
         </form>
-
-        <div class="relative py-4">
-            <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200"></div></div>
-            <div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-slate-500">Already a member?</span></div>
-        </div>
-
-        <a href="{% url 'login' %}" class="block text-center text-sm font-bold text-emerald-600 hover:underline">
-            Log in to your account
-        </a>
     </div>
-</div>
+</main>
 
+<script>
+    (function () {
+        const roleInputs = document.querySelectorAll('input[name="role"]');
+        const licenseSection = document.getElementById("professional-verification-section");
+        const licenseInput = document.getElementById("{{ form.license_number.id_for_label }}");
+
+        function syncLicenseField() {
+            const selected = document.querySelector('input[name="role"]:checked');
+            const isVerifier = selected && selected.value === "PHARMACIST";
+            licenseSection.hidden = !isVerifier;
+            licenseInput.required = isVerifier;
+            if (!isVerifier) {
+                licenseInput.value = "";
+            }
+        }
+
+        roleInputs.forEach(function (input) {
+            input.addEventListener("change", syncLicenseField);
+        });
+        syncLicenseField();
+    })();
+</script>
 {% endblock %}

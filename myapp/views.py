@@ -4,9 +4,8 @@ from django.db.models import Sum
 from pathlib import Path
 import mimetypes
 from django.contrib.auth import login
-from django.contrib.auth.forms import UserCreationForm
 from .models import User
-from .forms import DonationForm
+from .forms import DonationForm, SignUpForm
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
@@ -82,12 +81,6 @@ def judge_ocr(request):
         'explanation': explanation,
     })
 
-
-# A simple custom form to include the 'role' field
-class SignUpForm(UserCreationForm):
-    class Meta(UserCreationForm.Meta):
-        model = User
-        fields = UserCreationForm.Meta.fields + ('role', 'phone', 'license_number')
 def signup(request):
     if request.method == 'POST':
         form = SignUpForm(request.POST)

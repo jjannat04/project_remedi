@@ -151,6 +151,102 @@ class JudgeBypassTests(TestCase):
         self.assertTrue(user.is_demo_account)
 
 
+class RegistrationTests(TestCase):
+    def _registration_payload(self, **overrides):
+        payload = {
+            "full_name": "Amina Rahman",
+            "username": "aminauser",
+            "nid": "19981234567890123",
+            "phone": "01711111111",
+            "role": User.Role.DONOR,
+            "license_number": "",
+            "password1": "SecureAccess2026!",
+            "password2": "SecureAccess2026!",
+        }
+        payload.update(overrides)
+        return payload
+
+    def _professional_section_tag(self, response):
+        html = response.content.decode()
+        start = html.index('id="professional-verification-section"')
+        tag_start = html.rfind("<section", 0, start)
+        tag_end = html.index(">", start)
+        return html[tag_start:tag_end]
+
+    def test_signup_page_only_shows_public_account_types(self):
+        response = self.client.get(reverse("signup"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "User")
+        self.assertContains(response, "Healthcare Verifier")
+        self.assertNotContains(response, "Patient")
+        self.assertNotContains(response, "Admin")
+
+    def test_user_role_hides_license_field_by_default(self):
+        response = self.client.get(reverse("signup"))
+
+        self.assertIn("hidden", self._professional_section_tag(response))
+
+    def test_user_registration_saves_nid_full_name_and_logs_in(self):
+        response = self.client.post(reverse("signup"), self._registration_payload())
+
+        self.assertRedirects(response, reverse("marketplace"), fetch_redirect_response=False)
+        user = User.objects.get(username="aminauser")
+        self.assertEqual(user.role, User.Role.DONOR)
+        self.assertEqual(user.first_name, "Amina")
+        self.assertEqual(user.last_name, "Rahman")
+        self.assertEqual(user.nid, "19981234567890123")
+        self.assertEqual(user.phone, "01711111111")
+        self.assertEqual(user.license_number, "")
+        self.assertEqual(int(self.client.session["_auth_user_id"]), user.id)
+
+    def test_healthcare_verifier_shows_license_field_and_requires_license(self):
+        response = self.client.post(
+            reverse("signup"),
+            self._registration_payload(
+                username="verifiermissinglicense",
+                role=User.Role.PHARMACIST,
+                license_number="",
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("hidden", self._professional_section_tag(response))
+        self.assertContains(response, "Pharmacy license number is required for Healthcare Verifiers.")
+        self.assertFalse(User.objects.filter(username="verifiermissinglicense").exists())
+
+    def test_healthcare_verifier_registration_saves_license_and_waits_for_approval(self):
+        response = self.client.post(
+            reverse("signup"),
+            self._registration_payload(
+                full_name="Dr Farhan Kabir",
+                username="farhanverifier",
+                role=User.Role.PHARMACIST,
+                license_number="PHARM-2026-009",
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Registration Received!")
+        user = User.objects.get(username="farhanverifier")
+        self.assertEqual(user.role, User.Role.PHARMACIST)
+        self.assertEqual(user.license_number, "PHARM-2026-009")
+        self.assertEqual(user.first_name, "Dr")
+        self.assertEqual(user.last_name, "Farhan Kabir")
+        self.assertEqual(user.nid, "19981234567890123")
+        self.assertFalse(user.is_active)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_existing_registration_flow_still_accepts_valid_user_data(self):
+        response = self.client.post(
+            reverse("signup"),
+            self._registration_payload(username="regularflowuser", nid="20001234567890123"),
+        )
+
+        self.assertRedirects(response, reverse("marketplace"), fetch_redirect_response=False)
+        self.assertTrue(User.objects.filter(username="regularflowuser", role=User.Role.DONOR).exists())
+
+
 class SeededDemoPageTests(TestCase):
     @override_settings(DEMO_MODE=True)
     def test_seeded_demo_pages_render(self):
