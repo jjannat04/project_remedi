@@ -1219,3 +1219,18 @@ a.deletelink:focus, a.deletelink:hover {
     color: var(--body-fg);
     background-color: var(--body-bg);
 }
+.edit-gradient-green {
+    --tw-gradient-from: #34d399 var(--tw-gradient-from-position);
+    --tw-gradient-to: #059669 var(--tw-gradient-to-position);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+.edit-gradient-blue {
+    --tw-gradient-from: #38bdf8 var(--tw-gradient-from-position);
+    --tw-gradient-to: #0284c7 var(--tw-gradient-to-position);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+.edit-gradient-teal {
+    --tw-gradient-from: #2dd4bf var(--tw-gradient-from-position);
+    --tw-gradient-to: #0d9488 var(--tw-gradient-to-position);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}

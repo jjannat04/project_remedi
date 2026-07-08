@@ -2,7 +2,7 @@
 
 {% block content %}
 <!-- Legacy test label: Reserved Demo Medicines -->
-<section class="bg-white">
+{% comment %} <section class="bg-white">
     <div class="app-shell py-10">
         <div class="relative overflow-hidden rounded-[1.35rem] border border-slate-200 bg-slate-950 shadow-xl shadow-slate-200/70">
             <div class="remedi-carousel flex" id="hero-carousel" data-carousel-index="0">
@@ -111,8 +111,161 @@
             </div>
         </div>
     </div>
-</section>
+</section> {% endcomment %}
 
+
+<section class="bg-slate-50/50">
+    <div class="app-shell py-12">
+        <!-- Main Carousel Container -->
+        <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 shadow-2xl shadow-slate-950/10">
+            
+            <!-- Carousel Track -->
+            <div class="remedi-carousel flex transition-transform duration-500 ease-out" id="hero-carousel" data-carousel-index="0">
+                
+                <!-- Slide 1: Circular Care (Emerald / Green Theme) -->
+                <article class="hero-slide relative w-full shrink-0 px-6 py-16 text-white sm:px-12 lg:px-20 overflow-hidden">
+                    <!-- Emerald Background Accent Glow -->
+                    <div class="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-emerald-500/15 blur-[128px] pointer-events-none"></div>
+                    
+                    <div class="relative z-10 grid gap-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+                        <div class="space-y-6">
+                            <span class="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-400 ring-1 ring-emerald-500/20">
+                                <i class="bi bi-recycle text-sm"></i> Circular Care
+                            </span>
+                            <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl lg:leading-[1.15]">
+                                Minimize Waste.<br><span class="bg-gradient-to-r edit-gradient-green bg-clip-text text-transparent">Maximize Care.</span>
+                            </h1>
+                            <p class="max-w-xl text-base leading-relaxed text-slate-400 sm:text-lg">
+                                Safely donate your unused medications. Together, we can prevent medical waste and bridge the gap for communities facing healthcare shortages.
+                            </p>
+                            <div class="pt-2 flex flex-col gap-3 sm:flex-row">
+                                <a href="{% url 'donate_medicine' %}" class="app-btn inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-slate-950 shadow-md transition hover:bg-emerald-400">
+                                    <i class="bi bi-heart-pulse"></i> Donate Medicine
+                                </a>
+                                <a href="{% url 'marketplace_page' %}" class="app-btn inline-flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900/50 px-5 py-3 text-sm font-semibold text-slate-300 backdrop-blur-sm transition hover:bg-slate-900 hover:text-white">
+                                    <i class="bi bi-shop"></i> Browse Verified Supplies
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Rich Emerald Card Panel -->
+                        <div class="hero-panel relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-emerald-950/30 p-8 backdrop-blur-md shadow-lg shadow-emerald-950/20">
+                            <div class="absolute -right-6 -top-6 text-7xl text-emerald-500/5"><i class="bi bi-capsule-pill"></i></div>
+                            <div class="flex items-center gap-4 text-emerald-400">
+                                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/20">
+                                    <i class="bi bi-capsule-pill text-xl"></i>
+                                </div>
+                                <p class="text-xs font-bold uppercase tracking-widest text-emerald-300/70">Environmental Impact</p>
+                            </div>
+                            <div class="mt-6">
+                                <p class="text-5xl font-black tracking-tight text-white">{{ demo_analytics.waste_prevented_count|default:0 }}</p>
+                                <p class="mt-2 text-sm font-medium text-emerald-100">Medications Saved From Waste</p>
+                                <p class="mt-1 text-xs text-slate-400">Optimized via intelligent routing algorithms</p>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Slide 2: AI Verification (Sky Blue Theme) -->
+                <article class="hero-slide relative w-full shrink-0 px-6 py-16 text-white sm:px-12 lg:px-20 overflow-hidden">
+                    <!-- Sky Blue Background Accent Glow -->
+                    <div class="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-sky-500/15 blur-[128px] pointer-events-none"></div>
+                    
+                    <div class="relative z-10 grid gap-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+                        <div class="space-y-6">
+                            <span class="inline-flex items-center gap-2 rounded-full bg-sky-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-sky-400 ring-1 ring-sky-500/20">
+                                <i class="bi bi-stars text-sm"></i> Visual AI
+                            </span>
+                            <h2 class="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl lg:leading-[1.15]">
+                                AI-Assisted<br><span class="bg-gradient-to-r edit-gradient-blue bg-clip-text text-transparent">Safety Verification</span>
+                            </h2>
+                            <p class="max-w-xl text-base leading-relaxed text-slate-400 sm:text-lg">
+                                Powered by Gemini AI. Our specialized computer vision reads packaging signatures, extracts expiry metrics, and flags visual structural anomalies.
+                            </p>
+                            <div class="pt-2 flex flex-col gap-3 sm:flex-row">
+                                <a href="{% url 'donate_medicine' %}" class="app-btn inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500 px-5 py-3 text-sm font-semibold text-slate-950 shadow-md transition hover:bg-sky-400">
+                                    <i class="bi bi-cloud-upload"></i> Try AI Screening
+                                </a>
+                                {% if user.is_authenticated and user.role == "PHARMACIST" %}
+                                <a href="{% url 'pharmacist_queue' %}" class="app-btn inline-flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900/50 px-5 py-3 text-sm font-semibold text-slate-300 backdrop-blur-sm transition hover:bg-slate-900 hover:text-white">
+                                    <i class="bi bi-clipboard2-pulse"></i> Open Verification Panel
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Rich Sky Blue Card Panel -->
+                        <div class="hero-panel relative overflow-hidden rounded-2xl border border-sky-500/20 bg-sky-950/30 p-8 backdrop-blur-md shadow-lg shadow-sky-950/20">
+                            <div class="absolute -right-6 -top-6 text-7xl text-sky-500/5"><i class="bi bi-shield-check"></i></div>
+                            <div class="flex items-center gap-4 text-sky-400">
+                                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-500/20">
+                                    <i class="bi bi-shield-check text-xl"></i>
+                                </div>
+                                <p class="text-xs font-bold uppercase tracking-widest text-sky-300/70">Human-In-The-Loop</p>
+                            </div>
+                            <div class="mt-6">
+                                <p class="text-5xl font-black tracking-tight text-white">{{ demo_analytics.medicines_verified|default:0 }}</p>
+                                <p class="mt-2 text-sm font-medium text-sky-100">Batches Evaluated</p>
+                                <p class="mt-1 text-xs text-slate-400">Dual-verified by licensed medical pharmacists</p>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Slide 3: Affordable Healthcare (Indigo / Purple Theme) -->
+                <article class="hero-slide relative w-full shrink-0 px-6 py-16 text-white sm:px-12 lg:px-20 overflow-hidden">
+                    <!-- Indigo Background Accent Glow -->
+                    <div class="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-indigo-500/15 blur-[128px] pointer-events-none"></div>
+                    
+                    <div class="relative z-10 grid gap-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+                        <div class="space-y-6">
+                            <span class="inline-flex items-center gap-2 rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-indigo-400 ring-1 ring-indigo-500/20">
+                                <i class="bi bi-cash-coin text-sm"></i> Community Access
+                            </span>
+                            <h2 class="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl lg:leading-[1.15]">
+                                Equitable Access to<br><span class="bg-gradient-to-r edit-gradient-indigo bg-clip-text text-transparent">Essential Medicine</span>
+                            </h2>
+                            <p class="max-w-xl text-base leading-relaxed text-slate-400 sm:text-lg">
+                                Secure, affordable, and vetted care option right in your neighborhood. Claim the supplies you need using our safe, end-to-end traceable pickup architecture.
+                            </p>
+                            <div class="pt-2 flex flex-col gap-3 sm:flex-row">
+                                <a href="#available-medicines" class="app-btn inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-slate-950 shadow-md transition hover:bg-indigo-400">
+                                    <i class="bi bi-search"></i> Find Medicines Nearby
+                                </a>
+                                <a href="{% url 'corner_map' %}" class="app-btn inline-flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900/50 px-5 py-3 text-sm font-semibold text-slate-300 backdrop-blur-sm transition hover:bg-slate-900 hover:text-white">
+                                    <i class="bi bi-geo-alt"></i> View Live Pickup Map
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Rich Indigo Card Panel -->
+                        <div class="hero-panel relative overflow-hidden rounded-2xl border border-indigo-500/20 bg-indigo-950/30 p-8 backdrop-blur-md shadow-lg shadow-indigo-950/20">
+                            <div class="absolute -right-6 -top-6 text-7xl text-indigo-500/5"><i class="bi bi-people"></i></div>
+                            <div class="flex items-center gap-4 text-indigo-400">
+                                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/20">
+                                    <i class="bi bi-people text-xl"></i>
+                                </div>
+                                <p class="text-xs font-bold uppercase tracking-widest text-indigo-300/70">Community Support</p>
+                            </div>
+                            <div class="mt-6">
+                                <p class="text-5xl font-black tracking-tight text-white">{{ demo_analytics.patients_helped_count|default:0 }}</p>
+                                <p class="mt-2 text-sm font-medium text-indigo-100">Patients Benefited</p>
+                                <p class="mt-1 text-xs text-emerald-400 font-semibold">Saved {{ total_saved }} BDT in expenses</p>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </div>
+
+            <!-- Carousel Pagination Dots -->
+            <div class="absolute bottom-6 left-1/2 flex -translate-x-1/2 gap-2.5 z-10" aria-label="Hero carousel progress">
+                <button type="button" class="hero-dot h-1.5 w-8 rounded-full bg-white transition-all duration-300" aria-label="Show slide 1" data-slide="0"></button>
+                <button type="button" class="hero-dot h-1.5 w-2 rounded-full bg-white/30 transition-all duration-300 hover:bg-white/50" aria-label="Show slide 2" data-slide="1"></button>
+                <button type="button" class="hero-dot h-1.5 w-2 rounded-full bg-white/30 transition-all duration-300 hover:bg-white/50" aria-label="Show slide 3" data-slide="2"></button>
+            </div>
+        </div>
+    </div>
+</section>
 <section class="app-shell py-10">
     <div class="grid gap-4 md:grid-cols-5">
         <div class="app-card app-card-static p-5 text-center">
@@ -144,7 +297,7 @@
 </section>
 
 <section class="app-shell py-10" id="available-medicines">
-    {% if DEMO_MODE %}
+    {% comment %} {% if DEMO_MODE %}
     <div class="mb-10 grid grid-cols-2 gap-4 md:grid-cols-4">
         <div class="app-card app-card-static p-5">
             <i class="bi bi-capsule text-2xl text-teal-700"></i>
@@ -167,7 +320,7 @@
             <span class="text-xs font-bold uppercase text-slate-400">Waste Prevented</span>
         </div>
     </div>
-    {% endif %}
+    {% endif %} {% endcomment %}
 
     <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
@@ -176,20 +329,21 @@
             <p class="text-sm text-slate-500">Verified medicines ready for secure reservation and pickup.</p>
         </div>
         <form method="get" class="app-card app-card-static flex w-full gap-2 p-2 md:w-auto">
-            <div class="relative flex-1 md:w-96">
-                <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                <input
-                    type="search"
-                    name="q"
-                    value="{{ search_query }}"
-                    placeholder="Search by medicine or generic name..."
-                    class="border-0 pl-11 shadow-none focus:shadow-none"
-                >
-            </div>
-            <button type="submit" class="app-btn app-btn-dark">
-                <i class="bi bi-search"></i>Search
-            </button>
-        </form>
+    <div class="relative flex-1 md:w-96">
+        <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+        
+        <input
+            type="search"
+            name="q"
+            value="{{ search_query }}"
+            placeholder="Search by medicine or generic name..."
+            class="w-full border-0 !pl-12 shadow-none focus:shadow-none"
+        >
+    </div>
+    <button type="submit" class="app-btn app-btn-dark flex items-center gap-2">
+        <i class="bi bi-search"></i>Search
+    </button>
+</form>
     </div>
 
     <div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
