@@ -1928,6 +1928,9 @@ class MedicineImageUploadTests(TestCase):
             username="image_donor",
             password="pass12345",
             role=User.Role.DONOR,
+            first_name="Image",
+            last_name="Donor",
+            phone="01710000000",
         )
         self.pharmacist = User.objects.create_user(
             username="image_pharmacist",
@@ -1943,12 +1946,130 @@ class MedicineImageUploadTests(TestCase):
     def donation_payload(self, **overrides):
         payload = {
             "name": "Uploaded Medicine",
+            "scientific_name": "Paracetamol",
+            "dosage": "500 mg",
+            "manufacturer": "Square Pharmaceuticals",
+            "category": "Pain Relief",
             "batch_number": "IMG-FOUNDATION-001",
             "expiry_date": "2028-05-20",
             "original_price": "500.00",
+            "donor_phone": "01710000000",
+            "donation_address": "House 10, Road 2",
+            "district": "Dhaka",
+            "area": "Dhanmondi",
+            "pickup_notes": "Call before pickup",
+            "quantity": "2",
+            "package_type": "strip",
+            "opened": "False",
+            "storage_condition": "cool_dry",
+            "confirm_accuracy": "on",
         }
         payload.update(overrides)
         return payload
+
+    def evaluation_result(self):
+        return {
+            "ocr": {
+                "medicine_name": "AI Napa",
+                "scientific_name": "Paracetamol",
+                "dosage": "500 mg",
+                "manufacturer": "Beximco Pharma",
+                "batch_number": "AI-BATCH-001",
+                "expiry_text": "EXP 05/2028",
+                "confidence": 0.92,
+                "source": "gemini",
+            },
+            "safety": {
+                "damaged_packaging": False,
+                "tampered_seal": False,
+                "unclear_expiry": False,
+                "suspicious_condition": False,
+                "low_image_quality": False,
+            },
+            "risk": {
+                "risk_score": 0,
+                "risk_level": "Low",
+                "reasons": [],
+            },
+            "decision": {
+                "decision": "accept",
+                "confidence": 0.90,
+                "reasons": ["Risk is low, no safety issues were detected, and OCR confidence is acceptable."],
+            },
+        }
+
+    def test_donation_page_renders_ai_workflow_and_donor_name(self):
+        self.client.force_login(self.donor)
+
+        response = self.client.get(reverse("donate_medicine"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Donating as")
+        self.assertContains(response, "Image Donor")
+        self.assertContains(response, "AI Medicine Scan")
+        self.assertContains(response, "AI Extracted Information")
+        self.assertContains(response, "AI Safety Summary")
+
+    @patch("myapp.views.evaluate_donation")
+    def test_ai_extraction_populates_scan_response(self, mock_evaluate):
+        mock_evaluate.return_value = self.evaluation_result()
+        self.client.force_login(self.donor)
+
+        response = self.client.post(reverse("analyze_donation_image"), {"medicine_image": fake_image_file()})
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        mock_evaluate.assert_called_once()
+        self.assertEqual(payload["ocr"]["medicine_name"], "AI Napa")
+        self.assertEqual(payload["ocr"]["batch_number"], "AI-BATCH-001")
+        self.assertEqual(payload["ocr"]["expiry_date"], "2028-05-01")
+        self.assertEqual(payload["risk"]["risk_level"], "Low")
+        self.assertTrue(payload["safety"]["expiry_visible"])
+        self.assertTrue(payload["safety"]["batch_visible"])
+        self.assertTrue(payload["safety"]["package_intact"])
+        self.assertEqual(payload["explanation"]["title"], "Medicine appears suitable for donation")
+
+    def test_user_can_edit_ai_filled_fields_before_submission(self):
+        self.client.force_login(self.donor)
+
+        response = self.client.post(
+            reverse("donate_medicine"),
+            self.donation_payload(
+                name="Edited Medicine Name",
+                scientific_name="Edited Generic",
+                dosage="650 mg",
+                manufacturer="Edited Manufacturer",
+                batch_number="EDITED-BATCH-001",
+            ),
+        )
+
+        self.assertRedirects(response, reverse("marketplace"), fetch_redirect_response=False)
+        medicine = Medicine.objects.get(batch_number="EDITED-BATCH-001")
+        self.assertEqual(medicine.name, "Edited Medicine Name")
+        self.assertEqual(medicine.scientific_name, "Edited Generic")
+        self.assertEqual(medicine.dosage, "650 mg")
+        self.assertEqual(medicine.manufacturer, "Edited Manufacturer")
+
+    def test_quantity_must_be_at_least_one(self):
+        self.client.force_login(self.donor)
+
+        response = self.client.post(reverse("donate_medicine"), self.donation_payload(quantity="0"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Quantity must be at least 1.")
+        self.assertFalse(Medicine.objects.filter(batch_number="IMG-FOUNDATION-001").exists())
+
+    def test_required_address_fields_are_validated(self):
+        self.client.force_login(self.donor)
+
+        response = self.client.post(
+            reverse("donate_medicine"),
+            self.donation_payload(donor_phone="", donation_address="", district="", area=""),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "This field is required.", count=4)
+        self.assertFalse(Medicine.objects.filter(batch_number="IMG-FOUNDATION-001").exists())
 
     def test_donation_without_image_still_works(self):
         self.client.force_login(self.donor)
@@ -1959,6 +2080,16 @@ class MedicineImageUploadTests(TestCase):
         medicine = Medicine.objects.get(batch_number="IMG-FOUNDATION-001")
         self.assertEqual(medicine.donor, self.donor)
         self.assertFalse(medicine.medicine_image)
+        self.assertEqual(medicine.donor_phone, "01710000000")
+        self.assertEqual(medicine.donation_address, "House 10, Road 2")
+        self.assertEqual(medicine.district, "Dhaka")
+        self.assertEqual(medicine.area, "Dhanmondi")
+        self.assertEqual(medicine.pickup_notes, "Call before pickup")
+        self.assertEqual(medicine.quantity, 2)
+        self.assertEqual(medicine.package_type, "strip")
+        self.assertFalse(medicine.opened)
+        self.assertEqual(medicine.storage_condition, "cool_dry")
+        self.assertEqual(medicine.status, "pending")
 
     def test_donation_with_image_compresses_and_stores_file(self):
         self.client.force_login(self.donor)
@@ -2114,6 +2245,15 @@ class CloudinaryStorageConfigTests(TestCase):
                     "batch_number": "CLOUDINARY-FLOW-001",
                     "expiry_date": "2028-05-20",
                     "original_price": "500.00",
+                    "donor_phone": "01712223333",
+                    "donation_address": "Cloudinary Road",
+                    "district": "Dhaka",
+                    "area": "Mirpur",
+                    "quantity": "1",
+                    "package_type": "box",
+                    "opened": "False",
+                    "storage_condition": "room_temperature",
+                    "confirm_accuracy": "on",
                     "medicine_image": create_test_image("cloudinary-flow.png"),
                 },
             )
