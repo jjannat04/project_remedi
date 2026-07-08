@@ -272,6 +272,93 @@ class SeededDemoPageTests(TestCase):
         self.assertContains(queue_response, "Napa 500 mg Tablet")
 
 
+class FinalUIPolishTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="ui_user",
+            password="pass12345",
+            role=User.Role.DONOR,
+        )
+        self.pharmacist = User.objects.create_user(
+            username="ui_pharmacist",
+            password="pass12345",
+            role=User.Role.PHARMACIST,
+            is_active=True,
+        )
+
+    def test_normal_user_nav_hides_restricted_sections(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("marketplace"))
+
+        self.assertContains(response, "Dashboard / Profile")
+        self.assertContains(response, "Donate")
+        self.assertNotContains(response, "Verification Center")
+        self.assertNotContains(response, "Impact Reports")
+        self.assertNotContains(response, "Pickup Verification")
+
+    def test_pharmacist_nav_shows_verification_workflow(self):
+        self.client.force_login(self.pharmacist)
+
+        response = self.client.get(reverse("marketplace"))
+
+        self.assertContains(response, "Licensed Pharmacist")
+        self.assertContains(response, "Verification Center")
+        self.assertContains(response, "Marketplace")
+        self.assertContains(response, "Dashboard")
+        self.assertContains(response, "Profile")
+        self.assertContains(response, "Pickup Verification")
+        self.assertContains(response, "Logout")
+
+    @override_settings(DEMO_MODE=True)
+    def test_demo_badge_renders_only_when_demo_mode_enabled(self):
+        response = self.client.get(reverse("marketplace"))
+        self.assertContains(response, "<i class=\"bi bi-stars\"></i>Demo", html=True)
+        self.assertContains(response, f"href=\"{reverse('judge_entry')}\"")
+
+    @override_settings(DEMO_MODE=False)
+    def test_demo_badge_hidden_when_demo_mode_disabled(self):
+        response = self.client.get(reverse("marketplace"))
+        self.assertNotContains(response, "<i class=\"bi bi-stars\"></i>Demo", html=True)
+
+    def test_home_carousel_renders_hackathon_slide_headlines(self):
+        response = self.client.get(reverse("marketplace"))
+
+        self.assertContains(response, "Reduce Medicine Waste")
+        self.assertContains(response, "AI-Powered Verification")
+        self.assertContains(response, "Affordable Healthcare")
+
+    def test_donation_page_renders_step_timeline_and_ai_summary_labels(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("donate_medicine"))
+
+        self.assertContains(response, "AI processing timeline")
+        self.assertContains(response, "Uploading Image")
+        self.assertContains(response, "Reading Medicine Package")
+        self.assertContains(response, "AI Visual Inspection")
+        self.assertContains(response, "Risk Assessment")
+        self.assertContains(response, "Generating Recommendation")
+        self.assertContains(response, "Overall Confidence")
+        self.assertContains(response, "Medicine Information")
+        self.assertContains(response, "Visual Inspection")
+        self.assertContains(response, "Human verification required")
+        self.assertContains(response, "image-preview")
+
+    def test_marketplace_empty_state_still_renders(self):
+        response = self.client.get(reverse("marketplace"))
+
+        self.assertContains(response, "No verified medicines are currently available.")
+
+    def test_profile_empty_states_still_render(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("profile"))
+
+        self.assertContains(response, "No active orders found.")
+        self.assertContains(response, "Your contribution history is empty.")
+
+
 class SafetyScreeningTests(TestCase):
     def gemini_safety_json(self, **overrides):
         payload = {

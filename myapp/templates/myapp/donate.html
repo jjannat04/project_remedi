@@ -22,6 +22,17 @@
         <form method="post" enctype="multipart/form-data" class="space-y-6" id="donation-form">
             {% csrf_token %}
 
+            <section class="app-card app-card-static p-4 sm:p-5">
+                <div class="grid gap-3 text-sm font-black text-slate-600 sm:grid-cols-3 lg:grid-cols-6">
+                    <div class="rounded-2xl bg-teal-50 px-3 py-3 text-teal-800"><i class="bi bi-person-vcard mr-1"></i>Donor</div>
+                    <div class="rounded-2xl bg-sky-50 px-3 py-3 text-sky-800"><i class="bi bi-cloud-upload mr-1"></i>Upload</div>
+                    <div class="rounded-2xl bg-violet-50 px-3 py-3 text-violet-800"><i class="bi bi-stars mr-1"></i>AI Extract</div>
+                    <div class="rounded-2xl bg-amber-50 px-3 py-3 text-amber-800"><i class="bi bi-box-seam mr-1"></i>Details</div>
+                    <div class="rounded-2xl bg-rose-50 px-3 py-3 text-rose-800"><i class="bi bi-shield-check mr-1"></i>Safety</div>
+                    <div class="rounded-2xl bg-emerald-50 px-3 py-3 text-emerald-800"><i class="bi bi-check2-circle mr-1"></i>Confirm</div>
+                </div>
+            </section>
+
             <section class="app-card p-5 sm:p-6">
                 <div class="mb-5 flex items-center gap-3">
                     <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-50 text-teal-700">
@@ -105,6 +116,16 @@
                             </p>
                             <p id="analysis-error" class="hidden text-sm font-bold text-red-600"></p>
                         </div>
+                        <div id="processing-timeline" class="mt-5 hidden rounded-2xl border border-slate-200 bg-white p-4">
+                            <p class="mb-3 text-xs font-black uppercase tracking-widest text-slate-400">AI processing timeline</p>
+                            <div class="grid gap-2 text-sm font-bold text-slate-600 sm:grid-cols-2">
+                                <span class="timeline-step rounded-xl bg-slate-50 px-3 py-2"><i class="bi bi-arrow-up-circle text-slate-400"></i> Uploading Image</span>
+                                <span class="timeline-step rounded-xl bg-slate-50 px-3 py-2"><i class="bi bi-file-earmark-medical text-slate-400"></i> Reading Medicine Package</span>
+                                <span class="timeline-step rounded-xl bg-slate-50 px-3 py-2"><i class="bi bi-shield-check text-slate-400"></i> AI Visual Inspection</span>
+                                <span class="timeline-step rounded-xl bg-slate-50 px-3 py-2"><i class="bi bi-activity text-slate-400"></i> Risk Assessment</span>
+                                <span class="timeline-step rounded-xl bg-slate-50 px-3 py-2 sm:col-span-2"><i class="bi bi-lightbulb text-slate-400"></i> Generating Recommendation</span>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="border-t border-slate-200 bg-slate-50 p-5 sm:p-6 lg:border-l lg:border-t-0">
@@ -137,7 +158,7 @@
                         <div>
                             <div class="mb-1 flex items-center justify-between gap-2">
                                 <label for="{{ field.id_for_label }}" class="block text-sm font-bold text-slate-700">{{ field.label }}</label>
-                                <span class="ai-filled-badge app-badge hidden bg-violet-50 text-violet-700 ring-1 ring-violet-100">✨ AI Filled</span>
+                                <span class="ai-filled-badge app-badge hidden bg-violet-50 text-violet-700 ring-1 ring-violet-100"><i class="bi bi-stars"></i> AI Filled</span>
                             </div>
                             {{ field }}
                             {% if field.errors %}<p class="mt-1 text-xs font-bold text-red-600">{{ field.errors.0 }}</p>{% endif %}
@@ -197,14 +218,14 @@
                         <i class="bi bi-shield-exclamation"></i>
                     </span>
                     <div>
-                        <h2 class="text-xl font-black text-slate-950">AI Visual Inspection</h2>
-                        <p class="text-sm text-slate-500">Gemini reviews visible package condition only. A pharmacist still makes the final decision.</p>
+                        <h2 class="text-xl font-black text-slate-950">AI Analysis</h2>
+                        <p class="text-sm text-slate-500">Gemini reviews visible package condition only. Human verification required.</p>
                     </div>
                 </div>
 
                 <div class="grid gap-4 lg:grid-cols-3">
                     <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <p class="text-xs font-black uppercase tracking-widest text-slate-400">AI Confidence</p>
+                        <p class="text-xs font-black uppercase tracking-widest text-slate-400">Overall Confidence</p>
                         <p id="summary-confidence" class="mt-2 text-3xl font-black text-slate-950">--</p>
                     </div>
                     <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -219,14 +240,22 @@
 
                 <div class="mt-5 grid gap-4 lg:grid-cols-2">
                     <div class="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-                        <p class="mb-3 text-sm font-black text-emerald-800">Detected</p>
+                        <p class="mb-3 text-sm font-black text-emerald-800">Medicine Information</p>
                         <ul class="space-y-2 text-sm font-semibold text-emerald-900">
-                            <li id="detected-package"><i class="bi bi-check2-circle"></i> Package Intact</li>
-                            <li id="detected-seal"><i class="bi bi-check2-circle"></i> Seal Appears Valid</li>
-                            <li id="detected-label"><i class="bi bi-check2-circle"></i> Label Readable</li>
+                            <li><i class="bi bi-check2-circle"></i> Medicine detected</li>
+                            <li><i class="bi bi-check2-circle"></i> Manufacturer detected</li>
+                            <li><i class="bi bi-check2-circle"></i> Batch detected</li>
                         </ul>
                     </div>
-                    <div class="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                    <div class="rounded-2xl border border-sky-100 bg-sky-50 p-4">
+                        <p class="mb-3 text-sm font-black text-sky-800">Visual Inspection</p>
+                        <ul class="space-y-2 text-sm font-semibold text-sky-900">
+                            <li id="detected-package"><i class="bi bi-check2-circle"></i> Package intact</li>
+                            <li id="detected-seal"><i class="bi bi-check2-circle"></i> Seal verified</li>
+                            <li id="detected-label"><i class="bi bi-check2-circle"></i> Label readable</li>
+                        </ul>
+                    </div>
+                    <div class="rounded-2xl border border-amber-100 bg-amber-50 p-4 lg:col-span-2">
                         <p class="mb-3 text-sm font-black text-amber-800">Warnings</p>
                         <ul id="summary-warnings" class="space-y-2 text-sm font-semibold text-amber-900">
                             <li>No AI warnings yet.</li>
@@ -234,7 +263,7 @@
                     </div>
                 </div>
                 <p id="summary-text" class="mt-5 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-bold leading-6 text-white">
-                    Upload and analyze a package image to generate an AI visual inspection summary.
+                    Upload and analyze a package image to generate an AI visual inspection summary. Human verification required.
                 </p>
             </section>
 
@@ -262,6 +291,7 @@
         const analyzeButton = document.getElementById("analyze-button");
         const statusText = document.getElementById("analysis-status");
         const errorText = document.getElementById("analysis-error");
+        const processingTimeline = document.getElementById("processing-timeline");
         const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
 
         const fields = {
@@ -301,6 +331,22 @@
             });
         }
 
+        function setTimelineState(active) {
+            if (!processingTimeline) {
+                return;
+            }
+            processingTimeline.classList.remove("hidden");
+            processingTimeline.querySelectorAll(".timeline-step").forEach(function (step) {
+                step.classList.toggle("bg-emerald-50", !active);
+                step.classList.toggle("text-emerald-800", !active);
+                step.classList.toggle("bg-slate-50", active);
+                const icon = step.querySelector("i");
+                if (icon && !active) {
+                    icon.className = "bi bi-check2-circle text-emerald-600";
+                }
+            });
+        }
+
         imageInput.addEventListener("change", function () {
             const file = imageInput.files[0];
             if (!file) {
@@ -326,6 +372,7 @@
             const data = new FormData();
             data.append("medicine_image", file);
             statusText.classList.remove("hidden");
+            setTimelineState(true);
             analyzeButton.disabled = true;
 
             fetch("{% url 'analyze_donation_image' %}", {
@@ -357,6 +404,7 @@
                     setDetected("detected-label", payload.safety && payload.safety.label_readable, "Label Readable");
                     renderWarnings((payload.safety && payload.safety.warnings) || (payload.explanation && payload.explanation.negative_points));
                     document.getElementById("summary-text").textContent = (payload.safety && payload.safety.summary) || (payload.explanation && payload.explanation.summary) || "AI visual inspection complete.";
+                    setTimelineState(false);
                 })
                 .catch(function (error) {
                     errorText.textContent = error.message;

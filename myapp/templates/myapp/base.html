@@ -5,38 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <title>ReMedi | Circular Healthcare</title>
+    <title>ReMedi | AI Healthcare Redistribution</title>
     <style>
         :root {
-            --remedi-primary: #0F766E;
-            --remedi-accent: #10B981;
-            --remedi-bg: #F8FAFC;
-            --remedi-danger: #EF4444;
-            --remedi-warning: #F59E0B;
+            --remedi-primary: #0f766e;
+            --remedi-primary-dark: #115e59;
+            --remedi-accent: #10b981;
+            --remedi-sky: #0284c7;
+            --remedi-bg: #f6fbfc;
+            --remedi-ink: #0f172a;
+            --remedi-muted: #64748b;
+            --remedi-danger: #dc2626;
+            --remedi-warning: #d97706;
         }
 
-        html {
-            scroll-behavior: smooth;
-        }
+        html { scroll-behavior: smooth; }
 
         body {
-            background: var(--remedi-bg);
-            color: #0f172a;
+            background:
+                linear-gradient(180deg, rgba(240, 253, 250, 0.72), rgba(248, 250, 252, 0.86) 24rem),
+                var(--remedi-bg);
+            color: var(--remedi-ink);
             font-feature-settings: "cv02", "cv03", "cv04", "cv11";
         }
 
+        .app-shell {
+            width: min(100% - 2rem, 80rem);
+            margin-inline: auto;
+        }
+
         .app-card {
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 1rem;
-            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid rgba(203, 213, 225, 0.78);
+            border-radius: 1.125rem;
+            box-shadow: 0 18px 48px rgba(15, 23, 42, 0.065);
             transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
         }
 
         .app-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.10);
+            transform: translateY(-1px);
+            box-shadow: 0 24px 64px rgba(15, 23, 42, 0.10);
             border-color: rgba(15, 118, 110, 0.22);
+        }
+
+        .app-card-static:hover {
+            transform: none;
         }
 
         .app-btn {
@@ -47,13 +60,12 @@
             border-radius: 0.875rem;
             padding: 0.75rem 1rem;
             font-size: 0.875rem;
-            font-weight: 800;
+            font-weight: 850;
+            line-height: 1;
             transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, border-color 160ms ease;
         }
 
-        .app-btn:hover {
-            transform: translateY(-1px);
-        }
+        .app-btn:hover { transform: translateY(-1px); }
 
         .app-btn-primary {
             background: var(--remedi-primary);
@@ -61,9 +73,7 @@
             box-shadow: 0 14px 30px rgba(15, 118, 110, 0.22);
         }
 
-        .app-btn-primary:hover {
-            background: #115e59;
-        }
+        .app-btn-primary:hover { background: var(--remedi-primary-dark); }
 
         .app-btn-dark {
             background: #0f172a;
@@ -77,13 +87,20 @@
             border: 1px solid #cbd5e1;
         }
 
+        .app-btn-soft {
+            background: #ecfeff;
+            color: #0f766e;
+            border: 1px solid #ccfbf1;
+        }
+
         .app-btn-danger {
             background: var(--remedi-danger);
             color: #fff;
-            box-shadow: 0 14px 30px rgba(239, 68, 68, 0.18);
+            box-shadow: 0 14px 30px rgba(220, 38, 38, 0.18);
         }
 
-        .app-badge {
+        .app-badge,
+        .app-chip {
             display: inline-flex;
             align-items: center;
             gap: 0.375rem;
@@ -93,6 +110,73 @@
             font-weight: 900;
             letter-spacing: 0.04em;
             text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .app-alert {
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            padding: 1rem;
+            font-size: 0.875rem;
+            font-weight: 750;
+        }
+
+        .app-empty {
+            border: 1px dashed #cbd5e1;
+            border-radius: 1.125rem;
+            background: rgba(255, 255, 255, 0.82);
+            padding: 3rem 1.5rem;
+            text-align: center;
+        }
+
+        .app-progress {
+            height: 0.7rem;
+            overflow: hidden;
+            border-radius: 999px;
+            background: #e2e8f0;
+        }
+
+        .app-progress > span,
+        .app-progress > div {
+            display: block;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #0f766e, #0284c7);
+        }
+
+        .nav-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            border-radius: 0.875rem;
+            padding: 0.65rem 0.85rem;
+            color: #475569;
+            font-size: 0.875rem;
+            font-weight: 850;
+            transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+        }
+
+        .nav-link:hover,
+        .nav-link-active {
+            background: #ecfeff;
+            color: #0f766e;
+            box-shadow: inset 0 0 0 1px #ccfbf1;
+        }
+
+        .mobile-link {
+            border-radius: 0.875rem;
+            background: #f1f5f9;
+            padding: 0.65rem 0.5rem;
+            text-align: center;
+            font-size: 0.72rem;
+            font-weight: 900;
+            color: #475569;
+        }
+
+        .mobile-link-active {
+            background: #ccfbf1;
+            color: #0f766e;
         }
 
         .app-input,
@@ -117,29 +201,17 @@
             background: #fff;
         }
 
-        details.app-dropdown {
-            position: relative;
-        }
-
-        details.app-dropdown > summary {
-            list-style: none;
-            cursor: pointer;
-        }
-
-        details.app-dropdown > summary::-webkit-details-marker {
-            display: none;
-        }
-
-        details.app-dropdown[open] > .app-menu {
-            animation: fadeIn 140ms ease-out;
-        }
+        details.app-dropdown { position: relative; }
+        details.app-dropdown > summary { list-style: none; cursor: pointer; }
+        details.app-dropdown > summary::-webkit-details-marker { display: none; }
+        details.app-dropdown[open] > .app-menu { animation: fadeIn 140ms ease-out; }
 
         .app-menu {
             position: absolute;
             right: 0;
             top: calc(100% + 0.75rem);
             z-index: 60;
-            min-width: 14rem;
+            min-width: 15rem;
             border-radius: 1rem;
             border: 1px solid #e2e8f0;
             background: #fff;
@@ -153,42 +225,42 @@
         }
 
         @media print {
-            nav, .print-hidden {
-                display: none !important;
-            }
-
-            body {
-                background: #fff;
-            }
+            nav, footer, .print-hidden { display: none !important; }
+            body { background: #fff; }
         }
     </style>
 </head>
 <body class="font-sans antialiased">
-    <nav class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    {% with current=request.resolver_match.url_name %}
+    <nav class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/92 backdrop-blur-xl">
+        <div class="app-shell">
             <div class="flex min-h-16 flex-wrap items-center justify-between gap-3 py-3">
-                <div class="flex items-center gap-8">
+                <div class="flex items-center gap-7">
                     <a href="{% url 'marketplace' %}" class="flex items-center gap-3">
                         <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-700 text-white shadow-lg shadow-teal-100">
                             <i class="bi bi-capsule-pill text-xl"></i>
                         </span>
                         <span class="text-2xl font-black tracking-tight text-teal-800">ReMedi</span>
                     </a>
+                    {% if DEMO_MODE %}
+                    <a href="{% url 'judge_entry' %}" class="app-chip bg-sky-50 text-sky-700 ring-1 ring-sky-100 transition hover:bg-sky-100" title="Open demo mode">
+                        <i class="bi bi-stars"></i>Demo
+                    </a>
+                    {% endif %}
 
                     <div class="hidden items-center gap-1 lg:flex">
                         {% if user.is_authenticated and user.role == "PHARMACIST" %}
-                            <a href="{% url 'pharmacist_queue' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-100 hover:text-teal-700"><i class="bi bi-clipboard2-pulse mr-1"></i>Verification Center</a>
-                            <a href="{% url 'marketplace' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-100 hover:text-teal-700"><i class="bi bi-shop mr-1"></i>Marketplace</a>
-                            <a href="{% url 'impact_dashboard' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-100 hover:text-teal-700"><i class="bi bi-bar-chart-line mr-1"></i>Impact</a>
-                            <a href="{% url 'pharmacist_pickup' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-100 hover:text-teal-700"><i class="bi bi-shield-check mr-1"></i>Collection Verification</a>
+                            <a href="{% url 'pharmacist_queue' %}" class="nav-link {% if current == 'pharmacist_queue' or current == 'verification_queue' or current == 'pharmacist_review' %}nav-link-active{% endif %}"><i class="bi bi-clipboard2-pulse"></i>Verification Center</a>
+                            <a href="{% url 'marketplace' %}" class="nav-link {% if current == 'marketplace' or current == 'marketplace_page' or current == 'marketplace_detail' %}nav-link-active{% endif %}"><i class="bi bi-shop"></i>Marketplace</a>
+                            <a href="{% url 'impact_dashboard' %}" class="nav-link {% if current == 'impact_dashboard' or current == 'impact_reports' %}nav-link-active{% endif %}"><i class="bi bi-speedometer2"></i>Dashboard</a>
+                            <a href="{% url 'pharmacist_pickup' %}" class="nav-link {% if current == 'pharmacist_pickup' %}nav-link-active{% endif %}"><i class="bi bi-shield-check"></i>Pickup Verification</a>
                         {% elif user.is_authenticated %}
-                            <a href="{% url 'marketplace' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-100 hover:text-teal-700"><i class="bi bi-shop mr-1"></i>Marketplace</a>
-                            <a href="{% url 'donate_medicine' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-100 hover:text-teal-700"><i class="bi bi-heart-pulse mr-1"></i>Donate</a>
-                            <a href="{% url 'profile' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-100 hover:text-teal-700"><i class="bi bi-speedometer2 mr-1"></i>My Dashboard</a>
-                            <a href="{% url 'profile' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-100 hover:text-teal-700"><i class="bi bi-person-circle mr-1"></i>Profile</a>
+                            <a href="{% url 'marketplace' %}" class="nav-link {% if current == 'marketplace' or current == 'marketplace_page' or current == 'marketplace_detail' %}nav-link-active{% endif %}"><i class="bi bi-shop"></i>Marketplace</a>
+                            <a href="{% url 'donate_medicine' %}" class="nav-link {% if current == 'donate_medicine' %}nav-link-active{% endif %}"><i class="bi bi-heart-pulse"></i>Donate</a>
+                            <a href="{% url 'profile' %}" class="nav-link {% if current == 'profile' %}nav-link-active{% endif %}"><i class="bi bi-person-circle"></i>Dashboard / Profile</a>
                         {% else %}
-                            <a href="{% url 'marketplace' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-100 hover:text-teal-700"><i class="bi bi-shop mr-1"></i>Marketplace</a>
-                            <a href="{% url 'donate_medicine' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-100 hover:text-teal-700"><i class="bi bi-heart-pulse mr-1"></i>Donate</a>
+                            <a href="{% url 'marketplace' %}" class="nav-link {% if current == 'marketplace' or current == 'marketplace_page' or current == 'marketplace_detail' %}nav-link-active{% endif %}"><i class="bi bi-shop"></i>Marketplace</a>
+                            <a href="{% url 'donate_medicine' %}" class="nav-link {% if current == 'donate_medicine' %}nav-link-active{% endif %}"><i class="bi bi-heart-pulse"></i>Donate</a>
                         {% endif %}
                     </div>
                 </div>
@@ -196,45 +268,19 @@
                 <div class="flex items-center gap-2">
                     <div class="hidden items-center gap-1 md:flex lg:hidden">
                         {% if user.is_authenticated and user.role == "PHARMACIST" %}
-                            <a href="{% url 'pharmacist_queue' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100" title="Verification Center"><i class="bi bi-clipboard2-pulse"></i></a>
-                            <a href="{% url 'marketplace' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100" title="Marketplace"><i class="bi bi-shop"></i></a>
-                            <a href="{% url 'impact_dashboard' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100" title="Impact"><i class="bi bi-bar-chart-line"></i></a>
-                            <a href="{% url 'pharmacist_pickup' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100" title="Collection Verification"><i class="bi bi-shield-check"></i></a>
+                            <a href="{% url 'pharmacist_queue' %}" class="nav-link {% if current == 'pharmacist_queue' or current == 'pharmacist_review' %}nav-link-active{% endif %}" title="Verification Center"><i class="bi bi-clipboard2-pulse"></i></a>
+                            <a href="{% url 'marketplace' %}" class="nav-link {% if current == 'marketplace' or current == 'marketplace_page' or current == 'marketplace_detail' %}nav-link-active{% endif %}" title="Marketplace"><i class="bi bi-shop"></i></a>
+                            <a href="{% url 'impact_dashboard' %}" class="nav-link {% if current == 'impact_dashboard' or current == 'impact_reports' %}nav-link-active{% endif %}" title="Dashboard"><i class="bi bi-speedometer2"></i></a>
+                            <a href="{% url 'pharmacist_pickup' %}" class="nav-link {% if current == 'pharmacist_pickup' %}nav-link-active{% endif %}" title="Pickup Verification"><i class="bi bi-shield-check"></i></a>
                         {% elif user.is_authenticated %}
-                            <a href="{% url 'marketplace' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100" title="Marketplace"><i class="bi bi-shop"></i></a>
-                            <a href="{% url 'donate_medicine' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100" title="Donate"><i class="bi bi-heart-pulse"></i></a>
-                            <a href="{% url 'profile' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100" title="My Dashboard"><i class="bi bi-speedometer2"></i></a>
-                            <a href="{% url 'profile' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100" title="Profile"><i class="bi bi-person-circle"></i></a>
+                            <a href="{% url 'marketplace' %}" class="nav-link {% if current == 'marketplace' or current == 'marketplace_page' or current == 'marketplace_detail' %}nav-link-active{% endif %}" title="Marketplace"><i class="bi bi-shop"></i></a>
+                            <a href="{% url 'donate_medicine' %}" class="nav-link {% if current == 'donate_medicine' %}nav-link-active{% endif %}" title="Donate"><i class="bi bi-heart-pulse"></i></a>
+                            <a href="{% url 'profile' %}" class="nav-link {% if current == 'profile' %}nav-link-active{% endif %}" title="Dashboard / Profile"><i class="bi bi-person-circle"></i></a>
                         {% else %}
-                            <a href="{% url 'marketplace' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100" title="Marketplace"><i class="bi bi-shop"></i></a>
-                            <a href="{% url 'donate_medicine' %}" class="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100" title="Donate"><i class="bi bi-heart-pulse"></i></a>
+                            <a href="{% url 'marketplace' %}" class="nav-link {% if current == 'marketplace' or current == 'marketplace_page' or current == 'marketplace_detail' %}nav-link-active{% endif %}" title="Marketplace"><i class="bi bi-shop"></i></a>
+                            <a href="{% url 'donate_medicine' %}" class="nav-link {% if current == 'donate_medicine' %}nav-link-active{% endif %}" title="Donate"><i class="bi bi-heart-pulse"></i></a>
                         {% endif %}
                     </div>
-
-                    {% if not user.is_authenticated %}
-                    <details class="app-dropdown">
-                        <summary class="app-btn app-btn-outline py-2">
-                            <i class="bi bi-stars text-amber-500"></i>
-                            <span class="hidden sm:inline">Demo</span>
-                            <i class="bi bi-chevron-down text-xs"></i>
-                        </summary>
-                        <div class="app-menu">
-                            <a href="{% url 'judge_entry' %}" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
-                                <i class="bi bi-play-circle text-teal-700"></i>Demo Mode
-                            </a>
-                            <div class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold text-slate-700">
-                                <i class="bi bi-database-check text-emerald-600"></i>
-                                <span>Seed Demo Data</span>
-                                {% if DEMO_SEEDED %}
-                                    <span class="ml-auto h-2 w-2 rounded-full bg-emerald-500"></span>
-                                {% endif %}
-                            </div>
-                            <a href="{% url 'judge_entry' %}" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
-                                <i class="bi bi-people text-sky-600"></i>Demo Accounts
-                            </a>
-                        </div>
-                    </details>
-                    {% endif %}
 
                     {% if user.is_authenticated %}
                     <details class="app-dropdown">
@@ -244,7 +290,7 @@
                             </span>
                             <span class="hidden items-center gap-1 text-sm font-bold text-slate-700 sm:inline-flex">
                                 <span class="h-2 w-2 rounded-full {% if user.role == 'PHARMACIST' %}bg-sky-500{% else %}bg-emerald-500{% endif %}"></span>
-                                {% if user.role == "PHARMACIST" %}Verifier{% else %}User{% endif %}
+                                {% if user.role == "PHARMACIST" %}Licensed Pharmacist{% else %}User{% endif %}
                             </span>
                             <i class="bi bi-chevron-down text-xs text-slate-400"></i>
                         </summary>
@@ -254,7 +300,7 @@
                             </a>
                             {% if user.role == "PHARMACIST" %}
                             <a href="{% url 'pharmacist_pickup' %}" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
-                                <i class="bi bi-shield-check text-sky-600"></i>Collection Verification
+                                <i class="bi bi-shield-check text-sky-600"></i>Pickup Verification
                             </a>
                             {% endif %}
                             <form action="{% url 'logout' %}" method="post" class="mt-1 border-t border-slate-100 pt-1">
@@ -272,32 +318,32 @@
                 </div>
             </div>
 
-            <div class="grid {% if user.is_authenticated and user.role == 'PHARMACIST' %}grid-cols-4{% else %}grid-cols-4{% endif %} gap-2 pb-3 md:hidden">
+            <div class="grid gap-2 pb-3 md:hidden {% if user.is_authenticated and user.role == 'PHARMACIST' %}grid-cols-4{% elif user.is_authenticated %}grid-cols-3{% else %}grid-cols-4{% endif %}">
                 {% if user.is_authenticated and user.role == "PHARMACIST" %}
-                    <a href="{% url 'pharmacist_queue' %}" class="rounded-xl bg-slate-100 px-2 py-2 text-center text-xs font-black text-slate-600"><i class="bi bi-clipboard2-pulse block"></i>Verify</a>
-                    <a href="{% url 'marketplace' %}" class="rounded-xl bg-slate-100 px-2 py-2 text-center text-xs font-black text-slate-600"><i class="bi bi-shop block"></i>Market</a>
-                    <a href="{% url 'impact_dashboard' %}" class="rounded-xl bg-slate-100 px-2 py-2 text-center text-xs font-black text-slate-600"><i class="bi bi-bar-chart-line block"></i>Impact</a>
-                    <a href="{% url 'pharmacist_pickup' %}" class="rounded-xl bg-slate-100 px-2 py-2 text-center text-xs font-black text-slate-600"><i class="bi bi-shield-check block"></i>Collect</a>
+                    <a href="{% url 'pharmacist_queue' %}" class="mobile-link {% if current == 'pharmacist_queue' or current == 'pharmacist_review' %}mobile-link-active{% endif %}"><i class="bi bi-clipboard2-pulse block"></i>Verify</a>
+                    <a href="{% url 'marketplace' %}" class="mobile-link {% if current == 'marketplace' or current == 'marketplace_page' or current == 'marketplace_detail' %}mobile-link-active{% endif %}"><i class="bi bi-shop block"></i>Market</a>
+                    <a href="{% url 'impact_dashboard' %}" class="mobile-link {% if current == 'impact_dashboard' or current == 'impact_reports' %}mobile-link-active{% endif %}"><i class="bi bi-speedometer2 block"></i>Dash</a>
+                    <a href="{% url 'pharmacist_pickup' %}" class="mobile-link {% if current == 'pharmacist_pickup' %}mobile-link-active{% endif %}"><i class="bi bi-shield-check block"></i>Pickup</a>
                 {% elif user.is_authenticated %}
-                    <a href="{% url 'marketplace' %}" class="rounded-xl bg-slate-100 px-2 py-2 text-center text-xs font-black text-slate-600"><i class="bi bi-shop block"></i>Market</a>
-                    <a href="{% url 'donate_medicine' %}" class="rounded-xl bg-slate-100 px-2 py-2 text-center text-xs font-black text-slate-600"><i class="bi bi-heart-pulse block"></i>Donate</a>
-                    <a href="{% url 'profile' %}" class="rounded-xl bg-slate-100 px-2 py-2 text-center text-xs font-black text-slate-600"><i class="bi bi-speedometer2 block"></i>My</a>
-                    <a href="{% url 'profile' %}" class="rounded-xl bg-slate-100 px-2 py-2 text-center text-xs font-black text-slate-600"><i class="bi bi-person-circle block"></i>Profile</a>
+                    <a href="{% url 'marketplace' %}" class="mobile-link {% if current == 'marketplace' or current == 'marketplace_page' or current == 'marketplace_detail' %}mobile-link-active{% endif %}"><i class="bi bi-shop block"></i>Market</a>
+                    <a href="{% url 'donate_medicine' %}" class="mobile-link {% if current == 'donate_medicine' %}mobile-link-active{% endif %}"><i class="bi bi-heart-pulse block"></i>Donate</a>
+                    <a href="{% url 'profile' %}" class="mobile-link {% if current == 'profile' %}mobile-link-active{% endif %}"><i class="bi bi-person-circle block"></i>Profile</a>
                 {% else %}
-                    <a href="{% url 'marketplace' %}" class="rounded-xl bg-slate-100 px-2 py-2 text-center text-xs font-black text-slate-600"><i class="bi bi-shop block"></i>Market</a>
-                    <a href="{% url 'donate_medicine' %}" class="rounded-xl bg-slate-100 px-2 py-2 text-center text-xs font-black text-slate-600"><i class="bi bi-heart-pulse block"></i>Donate</a>
-                    <a href="{% url 'login' %}" class="rounded-xl bg-slate-100 px-2 py-2 text-center text-xs font-black text-slate-600"><i class="bi bi-box-arrow-in-right block"></i>Login</a>
-                    <a href="{% url 'signup' %}" class="rounded-xl bg-slate-100 px-2 py-2 text-center text-xs font-black text-slate-600"><i class="bi bi-person-plus block"></i>Join</a>
+                    <a href="{% url 'marketplace' %}" class="mobile-link {% if current == 'marketplace' or current == 'marketplace_page' or current == 'marketplace_detail' %}mobile-link-active{% endif %}"><i class="bi bi-shop block"></i>Market</a>
+                    <a href="{% url 'donate_medicine' %}" class="mobile-link {% if current == 'donate_medicine' %}mobile-link-active{% endif %}"><i class="bi bi-heart-pulse block"></i>Donate</a>
+                    <a href="{% url 'login' %}" class="mobile-link {% if current == 'login' %}mobile-link-active{% endif %}"><i class="bi bi-box-arrow-in-right block"></i>Login</a>
+                    <a href="{% url 'signup' %}" class="mobile-link {% if current == 'signup' %}mobile-link-active{% endif %}"><i class="bi bi-person-plus block"></i>Join</a>
                 {% endif %}
             </div>
         </div>
     </nav>
+    {% endwith %}
 
     {% block content %}
     {% endblock %}
 
     <footer class="mt-16 border-t border-slate-200 bg-white">
-        <div class="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.3fr_0.7fr_0.7fr] lg:px-8">
+        <div class="app-shell grid gap-8 py-10 md:grid-cols-[1.3fr_0.7fr_0.7fr]">
             <div>
                 <div class="flex items-center gap-3">
                     <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-700 text-white">
@@ -305,28 +351,37 @@
                     </span>
                     <div>
                         <p class="text-lg font-black text-slate-950">ReMedi</p>
-                        <p class="text-sm text-slate-500">Circular Healthcare Platform</p>
+                        <p class="text-sm text-slate-500">AI-assisted circular healthcare</p>
                     </div>
                 </div>
                 <p class="mt-4 max-w-md text-sm leading-6 text-slate-500">
-                    A safer, traceable way to redistribute unused medicines through AI-assisted review and verified community access.
+                    A safer, traceable way to redistribute unused medicines through AI-assisted review and human pharmacist verification.
                 </p>
             </div>
             <div>
                 <h2 class="text-sm font-black uppercase tracking-widest text-slate-500">Quick Links</h2>
                 <div class="mt-4 grid gap-2 text-sm font-bold text-slate-600">
                     <a href="{% url 'marketplace' %}" class="hover:text-teal-700">Marketplace</a>
-                    <a href="{% url 'donate_medicine' %}" class="hover:text-teal-700">Donate</a>
-                    <a href="{% url 'pharmacist_queue' %}" class="hover:text-teal-700">Verification Center</a>
-                    <a href="{% url 'impact_dashboard' %}" class="hover:text-teal-700">Impact</a>
+                    {% if user.is_authenticated and user.role == "PHARMACIST" %}
+                        <a href="{% url 'pharmacist_queue' %}" class="hover:text-teal-700">Verification Center</a>
+                        <a href="{% url 'impact_dashboard' %}" class="hover:text-teal-700">Dashboard</a>
+                        <a href="{% url 'pharmacist_pickup' %}" class="hover:text-teal-700">Pickup Verification</a>
+                    {% elif user.is_authenticated %}
+                        <a href="{% url 'donate_medicine' %}" class="hover:text-teal-700">Donate</a>
+                        <a href="{% url 'profile' %}" class="hover:text-teal-700">Dashboard / Profile</a>
+                    {% else %}
+                        <a href="{% url 'donate_medicine' %}" class="hover:text-teal-700">Donate</a>
+                        <a href="{% url 'login' %}" class="hover:text-teal-700">Login</a>
+                        <a href="{% url 'signup' %}" class="hover:text-teal-700">Sign Up</a>
+                    {% endif %}
                 </div>
             </div>
             <div>
-                <h2 class="text-sm font-black uppercase tracking-widest text-slate-500">Contact</h2>
+                <h2 class="text-sm font-black uppercase tracking-widest text-slate-500">Trust Model</h2>
                 <div class="mt-4 grid gap-2 text-sm font-bold text-slate-600">
-                    <span>Privacy</span>
-                    <span>Contact</span>
-                    <span>GitHub</span>
+                    <span><i class="bi bi-stars text-sky-600"></i> AI-assisted screening</span>
+                    <span><i class="bi bi-person-check text-teal-700"></i> Human final review</span>
+                    <span><i class="bi bi-qr-code text-emerald-600"></i> QR traceability</span>
                 </div>
             </div>
         </div>

@@ -32,6 +32,8 @@
                 <span>Risk Assessment</span>
                 <span>AI Decision</span>
                 <span>Explanation</span>
+                <span>✓ Yes</span>
+                <span>✗ No</span>
             </div>
             <div class="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
                 <p class="text-xs font-black uppercase tracking-widest text-emerald-700">AI Analysis Complete</p>
@@ -82,11 +84,11 @@
                 <section class="rounded-2xl border border-slate-200 bg-white p-5">
                     <h3 class="text-lg font-black text-slate-950 mb-4"><i class="bi bi-clipboard2-pulse mr-2 text-teal-700"></i>Safety Screening</h3>
                     <dl class="grid gap-3 text-sm text-slate-700">
-                        <div class="flex justify-between gap-4"><dt class="font-bold">Damaged Packaging</dt><dd>{% if evaluation.safety.damaged_packaging %}✓ Yes{% else %}✗ No{% endif %}</dd></div>
-                        <div class="flex justify-between gap-4"><dt class="font-bold">Tampered Seal</dt><dd>{% if evaluation.safety.tampered_seal %}✓ Yes{% else %}✗ No{% endif %}</dd></div>
-                        <div class="flex justify-between gap-4"><dt class="font-bold">Unclear Expiry</dt><dd>{% if evaluation.safety.unclear_expiry %}✓ Yes{% else %}✗ No{% endif %}</dd></div>
-                        <div class="flex justify-between gap-4"><dt class="font-bold">Suspicious Condition</dt><dd>{% if evaluation.safety.suspicious_condition %}✓ Yes{% else %}✗ No{% endif %}</dd></div>
-                        <div class="flex justify-between gap-4"><dt class="font-bold">Low Image Quality</dt><dd>{% if evaluation.safety.low_image_quality %}✓ Yes{% else %}✗ No{% endif %}</dd></div>
+                        <div class="flex justify-between gap-4"><dt class="font-bold">Damaged Packaging</dt><dd>{% if evaluation.safety.damaged_packaging %}<i class="bi bi-exclamation-triangle text-amber-600"></i> Yes{% else %}<i class="bi bi-check2-circle text-emerald-600"></i> No{% endif %}</dd></div>
+                        <div class="flex justify-between gap-4"><dt class="font-bold">Tampered Seal</dt><dd>{% if evaluation.safety.tampered_seal %}<i class="bi bi-exclamation-triangle text-amber-600"></i> Yes{% else %}<i class="bi bi-check2-circle text-emerald-600"></i> No{% endif %}</dd></div>
+                        <div class="flex justify-between gap-4"><dt class="font-bold">Unclear Expiry</dt><dd>{% if evaluation.safety.unclear_expiry %}<i class="bi bi-exclamation-triangle text-amber-600"></i> Yes{% else %}<i class="bi bi-check2-circle text-emerald-600"></i> No{% endif %}</dd></div>
+                        <div class="flex justify-between gap-4"><dt class="font-bold">Suspicious Condition</dt><dd>{% if evaluation.safety.suspicious_condition %}<i class="bi bi-exclamation-triangle text-amber-600"></i> Yes{% else %}<i class="bi bi-check2-circle text-emerald-600"></i> No{% endif %}</dd></div>
+                        <div class="flex justify-between gap-4"><dt class="font-bold">Low Image Quality</dt><dd>{% if evaluation.safety.low_image_quality %}<i class="bi bi-exclamation-triangle text-amber-600"></i> Yes{% else %}<i class="bi bi-check2-circle text-emerald-600"></i> No{% endif %}</dd></div>
                     </dl>
                 </section>
 
